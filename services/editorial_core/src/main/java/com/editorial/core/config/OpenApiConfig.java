@@ -20,7 +20,7 @@ public class OpenApiConfig {
         return new OpenAPI()
                 .info(new Info()
                         .title("Sultana del Lago Editores — Core API")
-                        .description("Contrato fase 1: rutas estables; mutaciones internas pendientes de auth LDAP/JWT.")
+                        .description("API del núcleo editorial de Sultana del Lago Editores. Fase 1: rutas estables; mutaciones internas pendientes de auth LDAP/JWT.")
                         .version("0.1.0")
                         .contact(new Contact().name("@marcelopcx").url("https://github.com/nullcipher-sec/Editorial")))
                 .servers(List.of(

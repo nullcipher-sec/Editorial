@@ -35,7 +35,9 @@ class ApiDocsExposureTest {
     void scalarAvailableSwaggerDisabled() throws Exception {
         mockMvc.perform(get("/scalar"))
                 .andExpect(status().isOk())
-                .andExpect(content().string(containsString("Sultana del Lago")));
+                .andExpect(content().string(containsString("Sultana del Lago")))
+                .andExpect(content().string(containsString("--sultana-mark")))
+                .andExpect(content().string(containsString("\"favicon\":\"data:image/svg+xml;base64,")));
 
         mockMvc.perform(get("/v3/api-docs"))
                 .andExpect(status().isOk())
