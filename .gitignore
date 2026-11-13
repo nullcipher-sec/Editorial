@@ -1,0 +1,29 @@
+# Secretos y entorno: nunca se versionan
+.env
+deploy/secrets/
+*.pem
+*.key
+
+# Java / Maven / Gradle
+target/
+build/
+.gradle/
+*.class
+
+# Node
+node_modules/
+dist/
+
+# LaTeX
+*.aux
+*.log
+*.out
+*.toc
+*.synctex.gz
+docs/informe/build/
+
+# IDE / SO
+.idea/
+.vscode/
+.DS_Store
+graphify-out/
