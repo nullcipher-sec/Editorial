@@ -13,7 +13,7 @@ Documento para @arrias24 (TUI), @JhonmarMorales17 (noticiero) y @luiscab19 (infr
 ## Contrato HTTP
 
 - **Canónico:** [`docs/api/openapi.yaml`](api/openapi.yaml)
-- **Interactivo (solo `dev`):** `http://localhost:8080/docs/swagger`
+- **Interactivo (solo `dev`, Scalar):** `http://localhost:8080/scalar` · JSON: `/v3/api-docs`
 
 ### Reglas fase 1
 

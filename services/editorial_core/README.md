@@ -5,7 +5,7 @@ Backend (Core) de Sultana del Lago Editores: API interna para las TUI y API púb
 ## Fase 1 (desbloqueo del equipo)
 
 - Esquema PostgreSQL en `deploy/db_init/db.sql`
-- Contrato HTTP estable (`docs/api/openapi.yaml`, Swagger en perfil `dev`)
+- Contrato HTTP estable (`docs/api/openapi.yaml`, Scalar en perfil `dev`)
 - `GET /api/public/articles` operativo (solo `PUBLISHED`)
 - Rutas internas con **lectura** (`GET`) y mutaciones respondiendo `501` hasta LDAP/JWT
 
@@ -19,7 +19,7 @@ docker compose -f docker-compose.dev.yml up --build
 
 - Salud: `curl -s http://localhost:8080/actuator/health`
 - Artículos públicos: `curl -s http://localhost:8080/api/public/articles`
-- Swagger (solo `dev`): http://localhost:8080/docs/swagger
+- Scalar (solo `dev`): http://localhost:8080/scalar · OpenAPI: `/v3/api-docs`
 
 Sin Docker:
 
