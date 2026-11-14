@@ -1,0 +1,13 @@
+# 1. Crear carpetas exactas
+mkdir scripts -Force
+mkdir deploy/firewall, deploy/nginx/certs, deploy/ldap, deploy/backup, deploy/secrets, deploy/docs -Force
+
+# Ruta: deploy/.gitignore
+@"
+.env
+secrets/
+nginx/certs/
+*.age
+*.key
+*.pem
+"@ | Out-File -FilePath deploy/.gitignore -Encoding utf8
