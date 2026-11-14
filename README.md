@@ -68,6 +68,10 @@ La seguridad se resuelve con **librerías y herramientas probadas**, no con cód
 y Spring LDAP (autenticación y autorización), Bean Validation, NGINX con TLS (mkcert/certbot), nftables,
 fail2ban, Trivy y OWASP Dependency-Check. El informe debe justificar cada elección.
 
+## Coordinación (fase 1 Core)
+
+Contrato de API, variables de entorno y notas para el equipo: [`docs/COORDINACION_EQUIPO.md`](docs/COORDINACION_EQUIPO.md).
+
 ## Flujo de trabajo
 
 Cada integrante trabaja en su propia rama y nadie hace push directo a `main`.
