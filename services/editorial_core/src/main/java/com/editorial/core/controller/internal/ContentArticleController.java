@@ -2,14 +2,18 @@ package com.editorial.core.controller.internal;
 
 import com.editorial.core.entity.Article;
 import com.editorial.core.exception.ControllerException;
+import com.editorial.core.model.request.CreateArticleRequest;
+import com.editorial.core.model.response.ArticleResponse;
 import com.editorial.core.model.response.ArticleSummaryResponse;
 import com.editorial.core.model.response.PageResponse;
 import com.editorial.core.repository.ArticleRepository;
-import com.editorial.core.util.Phase1Guard;
+import com.editorial.core.service.ContentArticleService;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -23,10 +27,12 @@ import java.util.UUID;
 @RestController
 @RequestMapping("/api/internal/content/articles")
 @RequiredArgsConstructor
+@PreAuthorize("hasAuthority('ROLE_PRODUCTION')")
 @Tag(name = "Internal — Content articles")
 public class ContentArticleController {
 
     private final ArticleRepository articleRepository;
+    private final ContentArticleService contentArticleService;
 
     @GetMapping
     public PageResponse<ArticleSummaryResponse> list(@PageableDefault(size = 20) Pageable pageable) {
@@ -35,13 +41,13 @@ public class ContentArticleController {
     }
 
     @PostMapping
-    public void create(@RequestBody Object body) throws ControllerException {
-        Phase1Guard.rejectMutation();
+    public ArticleResponse create(@Valid @RequestBody CreateArticleRequest body) throws ControllerException {
+        return contentArticleService.create(body);
     }
 
     @PatchMapping("/{id}/publish")
-    public void publish(@PathVariable UUID id) throws ControllerException {
-        Phase1Guard.rejectMutation();
+    public ArticleSummaryResponse publish(@PathVariable UUID id) throws ControllerException {
+        return contentArticleService.publish(id);
     }
 
     private ArticleSummaryResponse toSummary(Article article) {
