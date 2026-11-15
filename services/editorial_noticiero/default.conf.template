@@ -1,0 +1,34 @@
+server {
+    listen 8080;
+    server_name _;
+    server_tokens off;
+
+    root /usr/share/nginx/html;
+    index index.html;
+
+    add_header X-Content-Type-Options "nosniff" always;
+    add_header X-Frame-Options "DENY" always;
+    add_header Content-Security-Policy "default-src 'self'" always;
+
+    # la página (HTML, CSS y JS)
+    location / {
+        try_files $uri $uri/ =404;
+    }
+
+    # lista de artículos publicados (solo lectura)
+    location = /api/public/articles {
+        limit_except GET { deny all; }
+        proxy_pass ${CORE_URL}/api/public/articles;
+    }
+
+    # detalle de un artículo (solo si el id es un UUID)
+    location ~ "^/api/public/articles/[0-9a-fA-F-]{36}$" {
+        limit_except GET { deny all; }
+        proxy_pass ${CORE_URL};
+    }
+
+    # cualquier otra ruta de la API no existe
+    location /api/ {
+        return 404;
+    }
+}
