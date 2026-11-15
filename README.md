@@ -72,6 +72,17 @@ fail2ban, Trivy y OWASP Dependency-Check. El informe debe justificar cada elecci
 
 Contrato de API, variables de entorno y notas para el equipo: [`docs/COORDINACION_EQUIPO.md`](docs/COORDINACION_EQUIPO.md).
 
+### Alcance de la simulación Docker
+
+`deploy/docker-compose.dev.yml` ofrece una composición local con una terminal TUI por área y una
+red Docker separada para cada una. Esto reproduce aislamiento lógico para desarrollo, pero no
+equivale a VLAN 802.1Q, switches, rutas inter-VLAN ni políticas reales de `FW-E`; esas propiedades
+deben validarse en la infraestructura correspondiente.
+
+Las terminales con `MOCK_MODE=true` usan datos en memoria y perfiles de prueba. No prueban LDAP,
+JWT, PostgreSQL ni la conectividad real entre VLAN. Para una integración real deben ejecutarse con
+`MOCK_MODE=false` y `CORE_API_URL` apuntando al Core accesible desde la red del área.
+
 ## Flujo de trabajo
 
 Cada integrante trabaja en su propia rama y nadie hace push directo a `main`.

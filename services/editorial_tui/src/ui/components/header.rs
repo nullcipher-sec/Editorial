@@ -43,7 +43,7 @@ pub fn render_header(frame: &mut Frame, area: Rect, session: Option<&Session>, m
         )
     } else {
         Span::styled(
-            "[CONECTADO A CORE] ",
+            "[CORE; FALLBACK DE SIMULACIÓN] ",
             Style::default()
                 .fg(SULTANA_THEME.success)
                 .add_modifier(Modifier::BOLD),
