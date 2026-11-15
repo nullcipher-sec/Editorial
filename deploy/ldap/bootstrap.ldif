@@ -1,0 +1,46 @@
+@"
+dn: ou=people,dc=editorial,dc=local
+objectClass: organizationalUnit
+ou: people
+
+dn: ou=groups,dc=editorial,dc=local
+objectClass: organizationalUnit
+ou: groups
+
+dn: cn=ATTENTION,ou=groups,dc=editorial,dc=local
+objectClass: posixGroup
+cn: ATTENTION
+gidNumber: 2100
+
+dn: cn=PRODUCTION,ou=groups,dc=editorial,dc=local
+objectClass: posixGroup
+cn: PRODUCTION
+gidNumber: 2200
+
+dn: cn=RECRUITMENT,ou=groups,dc=editorial,dc=local
+objectClass: posixGroup
+cn: RECRUITMENT
+gidNumber: 2300
+
+dn: cn=HR,ou=groups,dc=editorial,dc=local
+objectClass: posixGroup
+cn: HR
+gidNumber: 2400
+
+dn: cn=MARKETING,ou=groups,dc=editorial,dc=local
+objectClass: posixGroup
+cn: MARKETING
+gidNumber: 2500
+
+dn: uid=prod.editor,ou=people,dc=editorial,dc=local
+objectClass: inetOrgPerson
+objectClass: posixAccount
+uid: prod.editor
+cn: Editor de Produccion
+sn: Produccion
+uidNumber: 10001
+gidNumber: 2200
+homeDirectory: /home/prod.editor
+mail: prod.editor@editorial.local
+userPassword: {SSHA}REEMPLAZA_ESTO_LUEGO
+"@ | Out-File -FilePath deploy/ldap/bootstrap.ldif -Encoding utf8
