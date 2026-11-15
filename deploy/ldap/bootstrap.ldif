@@ -1,4 +1,3 @@
-@"
 dn: ou=people,dc=editorial,dc=local
 objectClass: organizationalUnit
 ou: people
@@ -42,5 +41,4 @@ uidNumber: 10001
 gidNumber: 2200
 homeDirectory: /home/prod.editor
 mail: prod.editor@editorial.local
-userPassword: {SSHA}REEMPLAZA_ESTO_LUEGO
-"@ | Out-File -FilePath deploy/ldap/bootstrap.ldif -Encoding utf8
+userPassword: {SSHA}tbsVlpLgBa1inyiHwsFlyLFGpujardqW
