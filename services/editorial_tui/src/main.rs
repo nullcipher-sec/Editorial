@@ -149,7 +149,7 @@ async fn handle_login_keys(app: &mut App, code: KeyCode) {
 }
 
 async fn login_quick(app: &mut App, username: &str) {
-    match app.api.login(username, "secret").await {
+    match app.api.login(username, "EditorialDev!2026").await {
         Ok(session) => {
             app.session = Some(session);
             app.current_screen = CurrentScreen::MainMenu;
@@ -688,7 +688,7 @@ mod tests {
     #[tokio::test]
     async fn test_mock_api_login_and_areas() {
         let api = MockApiClient::new();
-        let session = api.login("prod.editor", "secret").await.unwrap();
+        let session = api.login("prod.editor", "EditorialDev!2026").await.unwrap();
         assert_eq!(session.user.area, AreaCode::Production);
         assert!(session.token.is_some());
     }

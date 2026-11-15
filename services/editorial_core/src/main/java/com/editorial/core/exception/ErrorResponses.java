@@ -13,6 +13,9 @@ public final class ErrorResponses {
     public static final ErrorResponse UNAUTHORIZED = new ErrorResponse(HttpStatus.UNAUTHORIZED,
             "Authentication required");
 
+    public static final ErrorResponse INVALID_CREDENTIALS = new ErrorResponse(HttpStatus.UNAUTHORIZED,
+            "Invalid username or password");
+
     public static final ErrorResponse FORBIDDEN = new ErrorResponse(HttpStatus.FORBIDDEN,
             "Access denied");
 

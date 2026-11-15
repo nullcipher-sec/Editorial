@@ -12,6 +12,31 @@ networks:
     ipam:
       config:
         - subnet: 10.20.30.0/24
+  red_atencion:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 10.20.210.0/24
+  red_produccion:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 10.20.220.0/24
+  red_reclutamiento:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 10.20.230.0/24
+  red_rrhh:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 10.20.240.0/24
+  red_eventos:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 10.20.250.0/24
 
 services:
   postgres:
@@ -28,6 +53,24 @@ services:
       red_datos:
         ipv4_address: 10.20.40.10
 
+  ldap:
+    build:
+      context: ./ldap
+      dockerfile: Dockerfile
+    environment:
+      LDAP_ORGANISATION: Sultana del Lago
+      LDAP_DOMAIN: editorial.local
+      LDAP_ADMIN_PASSWORD: ${LDAP_ADMIN_PASSWORD:-admin_dev_only}
+    healthcheck:
+      test: ["CMD", "ldapsearch", "-x", "-D", "cn=admin,dc=editorial,dc=local", "-w", "admin_dev_only", "-b", "ou=people,dc=editorial,dc=local", "-s", "base", "(objectClass=*)"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+      start_period: 20s
+    networks:
+      red_apps:
+        ipv4_address: 10.20.30.20
+
   editorial_core:
     build:
       context: ../services/editorial_core
@@ -40,11 +83,104 @@ services:
       POSTGRES_USER: ${POSTGRES_USER:-editorial}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-editorial_dev_only}
       POSTGRES_DB: ${POSTGRES_DB:-editorial}
+      EDITORIAL_JWT_SECRET: ${EDITORIAL_JWT_SECRET:-local-dev-only-secret-32-chars-min!!}
+      EDITORIAL_LDAP_ENABLED: "true"
+      LDAP_URL: ldap://10.20.30.20:389
+      LDAP_MANAGER_DN: cn=admin,dc=editorial,dc=local
+      LDAP_MANAGER_PASSWORD: ${LDAP_ADMIN_PASSWORD:-admin_dev_only}
     ports:
       - "${CORE_PORT:-8080}:8080"
     depends_on:
-      - postgres
+      postgres:
+        condition: service_started
+      ldap:
+        condition: service_healthy
     networks:
       red_apps:
         ipv4_address: 10.20.30.10
       red_datos: {}
+
+  tui_atencion:
+    build:
+      context: ../services/editorial_tui
+      dockerfile: Dockerfile
+    environment:
+      CORE_API_URL: http://editorial_core:8080
+      MOCK_MODE: "false"
+      TERMINAL_AREA: ATTENTION
+    depends_on:
+      - editorial_core
+    stdin_open: true
+    tty: true
+    networks:
+      red_atencion:
+        ipv4_address: 10.20.210.10
+      red_apps: {}
+
+  tui_produccion:
+    build:
+      context: ../services/editorial_tui
+      dockerfile: Dockerfile
+    environment:
+      CORE_API_URL: http://editorial_core:8080
+      MOCK_MODE: "false"
+      TERMINAL_AREA: PRODUCTION
+    depends_on:
+      - editorial_core
+    stdin_open: true
+    tty: true
+    networks:
+      red_produccion:
+        ipv4_address: 10.20.220.10
+      red_apps: {}
+
+  tui_reclutamiento:
+    build:
+      context: ../services/editorial_tui
+      dockerfile: Dockerfile
+    environment:
+      CORE_API_URL: http://editorial_core:8080
+      MOCK_MODE: "false"
+      TERMINAL_AREA: RECRUITMENT
+    depends_on:
+      - editorial_core
+    stdin_open: true
+    tty: true
+    networks:
+      red_reclutamiento:
+        ipv4_address: 10.20.230.10
+      red_apps: {}
+
+  tui_rrhh:
+    build:
+      context: ../services/editorial_tui
+      dockerfile: Dockerfile
+    environment:
+      CORE_API_URL: http://editorial_core:8080
+      MOCK_MODE: "false"
+      TERMINAL_AREA: HR
+    depends_on:
+      - editorial_core
+    stdin_open: true
+    tty: true
+    networks:
+      red_rrhh:
+        ipv4_address: 10.20.240.10
+      red_apps: {}
+
+  tui_eventos:
+    build:
+      context: ../services/editorial_tui
+      dockerfile: Dockerfile
+    environment:
+      CORE_API_URL: http://editorial_core:8080
+      MOCK_MODE: "false"
+      TERMINAL_AREA: MARKETING
+    depends_on:
+      - editorial_core
+    stdin_open: true
+    tty: true
+    networks:
+      red_eventos:
+        ipv4_address: 10.20.250.10
+      red_apps: {}

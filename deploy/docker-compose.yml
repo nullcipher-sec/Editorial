@@ -1,11 +1,24 @@
+# Topología provisional — responsable infra: @luiscab19
 version: "3.9"
 
 networks:
-  red_gestion: { driver: bridge, ipam: { config: [{ subnet: 10.20.10.0/24 }] } }
-  red_dmz:     { driver: bridge, ipam: { config: [{ subnet: 10.20.20.0/24 }] } }
-  red_apps:    { driver: bridge, ipam: { config: [{ subnet: 10.20.30.0/24 }] } }
-  red_datos:   { driver: bridge, ipam: { config: [{ subnet: 10.20.40.0/24 }] } }
-  red_bkup:    { driver: bridge, ipam: { config: [{ subnet: 10.20.50.0/24 }] } }
+  red_gestion:
+    driver: bridge
+    ipam: { config: [{ subnet: 10.20.10.0/24 }] }
+  red_dmz:
+    driver: bridge
+    ipam: { config: [{ subnet: 10.20.20.0/24 }] }
+  red_apps:
+    driver: bridge
+    ipam: { config: [{ subnet: 10.20.30.0/24 }] }
+  red_datos:
+    driver: bridge
+    internal: true
+    ipam: { config: [{ subnet: 10.20.40.0/24 }] }
+  red_bkup:
+    driver: bridge
+    internal: true
+    ipam: { config: [{ subnet: 10.20.50.0/24 }] }
 
 services:
   firewall:
@@ -14,13 +27,14 @@ services:
     read_only: true
     cap_drop: [ALL]
     cap_add: [NET_ADMIN, NET_RAW]
-    sysctls: [net.ipv4.ip_forward=1]
+    sysctls:
+      net.ipv4.ip_forward: "1"
     networks:
       red_gestion: { ipv4_address: 10.20.10.10 }
-      red_dmz:     { ipv4_address: 10.20.20.2 }
-      red_apps:    { ipv4_address: 10.20.30.2 }
-      red_datos:   { ipv4_address: 10.20.40.2 }
-      red_bkup:    { ipv4_address: 10.20.50.2 }
+      red_dmz: { ipv4_address: 10.20.20.2 }
+      red_apps: { ipv4_address: 10.20.30.2 }
+      red_datos: { ipv4_address: 10.20.40.2 }
+      red_bkup: { ipv4_address: 10.20.50.2 }
 
   nginx:
     image: nginx:1.27-alpine
@@ -42,9 +56,10 @@ services:
     image: postgres:16-alpine
     container_name: srv-datos-pg
     env_file: [.env]
-    expose: ["5432"]
     volumes:
+      - ./db_init/db.sql:/docker-entrypoint-initdb.d/01-schema.sql:ro
       - pgdata:/var/lib/postgresql/data
+    expose: ["5432"]
     networks:
       red_datos: { ipv4_address: 10.20.40.10 }
     healthcheck:
@@ -54,12 +69,14 @@ services:
       retries: 5
 
   ldap:
-    build: ./ldap
+    build:
+      context: ./ldap
+      dockerfile: Dockerfile
     container_name: srv-apps-ldap
     environment:
-      - LDAP_ORGANISATION=Sultana del Lago
-      - LDAP_DOMAIN=${LDAP_DOMAIN}
-      - LDAP_ADMIN_PASSWORD=${LDAP_ADMIN_PASSWORD}
+      LDAP_ORGANISATION: Sultana del Lago
+      LDAP_DOMAIN: ${LDAP_DOMAIN}
+      LDAP_ADMIN_PASSWORD: ${LDAP_ADMIN_PASSWORD}
     volumes:
       - ldap_data:/var/lib/ldap
       - ldap_config:/etc/ldap/slapd.d

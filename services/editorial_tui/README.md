@@ -77,3 +77,13 @@ docker run -it --rm \
 ```
 
 Para la integración en `docker-compose.yml`, cada terminal de área puede instanciarse con un contenedor propio conectado a la red correspondiente coordinada con `@luiscab19`.
+
+La composición de desarrollo del repositorio (`deploy/docker-compose.dev.yml`) incluye una terminal
+por área (`tui_atencion`, `tui_produccion`, `tui_reclutamiento`, `tui_rrhh` y `tui_eventos`).
+Estas redes Docker reproducen la separación lógica de las VLAN, pero no crean VLAN 802.1Q ni
+sustituyen el enrutamiento y las reglas del firewall físico o virtual.
+
+`MOCK_MODE=true` es una simulación local en memoria: no autentica contra LDAP, no persiste en
+PostgreSQL y no representa una prueba de conectividad entre VLAN. En despliegues integrados debe
+usarse `MOCK_MODE=false`; los errores del Core deben corregirse en el servicio responsable y no
+interpretarse como datos reales de la terminal.
