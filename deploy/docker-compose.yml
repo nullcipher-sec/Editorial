@@ -1,23 +1,64 @@
-# Redes que reproducen las VLAN de la topología (SW-Core-E no enruta;
-# todo el tráfico entre zonas pasa por el firewall FW-E).
-# Responsable: @luiscab19 (ver issue de Infraestructura)
-networks:
-  red_gestion:   # VLAN 10  - 10.20.10.0/24
-    driver: bridge
-    ipam: { config: [{ subnet: 10.20.10.0/24 }] }
-  red_dmz:       # VLAN 20  - 10.20.20.0/24
-    driver: bridge
-    ipam: { config: [{ subnet: 10.20.20.0/24 }] }
-  red_apps:      # VLAN 30  - 10.20.30.0/24
-    driver: bridge
-    ipam: { config: [{ subnet: 10.20.30.0/24 }] }
-  red_datos:     # VLAN 40  - 10.20.40.0/24
-    driver: bridge
-    internal: true
-    ipam: { config: [{ subnet: 10.20.40.0/24 }] }
-  red_respaldo:  # VLAN 50  - 10.20.50.0/24
-    driver: bridge
-    internal: true
-    ipam: { config: [{ subnet: 10.20.50.0/24 }] }
+@"
+version: "3.9"
 
-services: {}
+networks:
+  red_gestion: { driver: bridge, ipam: { config: [{ subnet: 10.20.10.0/24 }] } }
+  red_dmz:     { driver: bridge, ipam: { config: [{ subnet: 10.20.20.0/24 }] } }
+  red_apps:    { driver: bridge, ipam: { config: [{ subnet: 10.20.30.0/24 }] } }
+  red_datos:   { driver: bridge, ipam: { config: [{ subnet: 10.20.40.0/24 }] } }
+  red_bkup:    { driver: bridge, ipam: { config: [{ subnet: 10.20.50.0/24 }] } }
+
+services:
+  firewall:
+    build: ./firewall
+    container_name: fw-e
+    cap_add: [NET_ADMIN, NET_RAW]
+    sysctls: [net.ipv4.ip_forward=1]
+    networks:
+      red_gestion: { ipv4_address: 10.20.10.10 }
+      red_dmz:     { ipv4_address: 10.20.20.2 }
+      red_apps:    { ipv4_address: 10.20.30.2 }
+      red_datos:   { ipv4_address: 10.20.40.2 }
+      red_bkup:    { ipv4_address: 10.20.50.2 }
+
+  nginx:
+    image: nginx:1.27-alpine
+    container_name: srv-dmz-nginx
+    expose: ["443", "80"]
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/certs:/etc/nginx/certs:ro
+    networks:
+      red_dmz: { ipv4_address: 10.20.20.10 }
+
+  database:
+    image: postgres:16-alpine
+    container_name: srv-datos-pg
+    env_file: [.env]
+    expose: ["5432"]
+    networks:
+      red_datos: { ipv4_address: 10.20.40.10 }
+
+  ldap:
+    image: osixia/openldap:1.5.0
+    container_name: srv-apps-ldap
+    environment:
+      - LDAP_ORGANISATION=Sultana del Lago
+      - LDAP_DOMAIN=`${LDAP_DOMAIN}
+      - LDAP_ADMIN_PASSWORD=`${LDAP_ADMIN_PASSWORD}
+    volumes:
+      - ./ldap/bootstrap.ldif:/container/service/slapd/assets/config/bootstrap/ldif/custom/50-bootstrap.ldif:ro
+    expose: ["389"]
+    networks:
+      red_apps: { ipv4_address: 10.20.30.20 }
+
+  backup:
+    image: alpine:3.20
+    container_name: srv-bkup
+    command: sh -c "apk add --no-cache postgresql16-client age bash && sleep infinity"
+    env_file: [.env]
+    volumes:
+      - ./secrets:/secrets:ro
+    networks:
+      red_bkup: { ipv4_address: 10.20.50.10 }
+"@ | Out-File -FilePath deploy/docker-compose.yml -Encoding utf8

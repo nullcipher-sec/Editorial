@@ -1,0 +1,160 @@
+# Entorno local de fase 1: Postgres + Core (no sustituye la topología completa de @luiscab19).
+name: editorial-dev
+
+networks:
+  red_datos:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 10.20.40.0/24
+  red_apps:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 10.20.30.0/24
+  red_atencion:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 10.20.210.0/24
+  red_produccion:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 10.20.220.0/24
+  red_reclutamiento:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 10.20.230.0/24
+  red_rrhh:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 10.20.240.0/24
+  red_eventos:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 10.20.250.0/24
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-editorial}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-editorial_dev_only}
+      POSTGRES_DB: ${POSTGRES_DB:-editorial}
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - ./db_init/db.sql:/docker-entrypoint-initdb.d/01-schema.sql:ro
+    networks:
+      red_datos:
+        ipv4_address: 10.20.40.10
+
+  editorial_core:
+    build:
+      context: ../services/editorial_core
+      dockerfile: Dockerfile
+    environment:
+      SPRING_PROFILES_ACTIVE: dev
+      CORE_PORT: 8080
+      POSTGRES_HOST: 10.20.40.10
+      POSTGRES_PORT: 5432
+      POSTGRES_USER: ${POSTGRES_USER:-editorial}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-editorial_dev_only}
+      POSTGRES_DB: ${POSTGRES_DB:-editorial}
+    ports:
+      - "${CORE_PORT:-8080}:8080"
+    depends_on:
+      - postgres
+    networks:
+      red_apps:
+        ipv4_address: 10.20.30.10
+      red_datos: {}
+
+  tui_atencion:
+    build:
+      context: ../services/editorial_tui
+      dockerfile: Dockerfile
+    environment:
+      CORE_API_URL: http://editorial_core:8080
+      MOCK_MODE: "false"
+      TERMINAL_AREA: ATTENTION
+    depends_on:
+      - editorial_core
+    stdin_open: true
+    tty: true
+    networks:
+      red_atencion:
+        ipv4_address: 10.20.210.10
+      red_apps: {}
+
+  tui_produccion:
+    build:
+      context: ../services/editorial_tui
+      dockerfile: Dockerfile
+    environment:
+      CORE_API_URL: http://editorial_core:8080
+      MOCK_MODE: "false"
+      TERMINAL_AREA: PRODUCTION
+    depends_on:
+      - editorial_core
+    stdin_open: true
+    tty: true
+    networks:
+      red_produccion:
+        ipv4_address: 10.20.220.10
+      red_apps: {}
+
+  tui_reclutamiento:
+    build:
+      context: ../services/editorial_tui
+      dockerfile: Dockerfile
+    environment:
+      CORE_API_URL: http://editorial_core:8080
+      MOCK_MODE: "false"
+      TERMINAL_AREA: RECRUITMENT
+    depends_on:
+      - editorial_core
+    stdin_open: true
+    tty: true
+    networks:
+      red_reclutamiento:
+        ipv4_address: 10.20.230.10
+      red_apps: {}
+
+  tui_rrhh:
+    build:
+      context: ../services/editorial_tui
+      dockerfile: Dockerfile
+    environment:
+      CORE_API_URL: http://editorial_core:8080
+      MOCK_MODE: "false"
+      TERMINAL_AREA: HR
+    depends_on:
+      - editorial_core
+    stdin_open: true
+    tty: true
+    networks:
+      red_rrhh:
+        ipv4_address: 10.20.240.10
+      red_apps: {}
+
+  tui_eventos:
+    build:
+      context: ../services/editorial_tui
+      dockerfile: Dockerfile
+    environment:
+      CORE_API_URL: http://editorial_core:8080
+      MOCK_MODE: "false"
+      TERMINAL_AREA: MARKETING
+    depends_on:
+      - editorial_core
+    stdin_open: true
+    tty: true
+    networks:
+      red_eventos:
+        ipv4_address: 10.20.250.10
+      red_apps: {}
