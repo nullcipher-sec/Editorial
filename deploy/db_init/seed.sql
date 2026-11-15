@@ -1,12 +1,6 @@
 -- Datos de prueba para Sultana del Lago Editores.
 -- Se suman a los que ya trae db.sql (no repite sus ids).
-
--- Usuarios: uno por área (el de PRODUCTION ya existe en db.sql)
-INSERT INTO app_user (id, ldap_uid, display_name, area) VALUES
-  ('11111111-1111-1111-1111-111111111102', 'att.agente',   'Agente de Atención',  'ATTENTION'),
-  ('11111111-1111-1111-1111-111111111103', 'rec.analista', 'Analista de Reclutamiento', 'RECRUITMENT'),
-  ('11111111-1111-1111-1111-111111111104', 'hr.analista',  'Analista de RRHH',    'HR'),
-  ('11111111-1111-1111-1111-111111111105', 'mkt.gestor',   'Gestor de Marketing', 'MARKETING');
+-- Los usuarios por área (ids ...101 a ...105) ya vienen en db.sql.
 
 -- Artículos: dos públicos más, uno en revisión y uno en borrador
 INSERT INTO article (id, title, summary, body, status, author_id, published_at) VALUES
