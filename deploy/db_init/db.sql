@@ -103,7 +103,11 @@ CREATE INDEX idx_candidate_job_opening ON candidate (job_opening_id);
 
 -- Datos de muestra para desarrollo local y pruebas del noticiero (@JhonmarMorales17).
 INSERT INTO app_user (id, ldap_uid, display_name, area) VALUES
-    ('11111111-1111-1111-1111-111111111101', 'prod.editor', 'Editor de Producción', 'PRODUCTION');
+    ('11111111-1111-1111-1111-111111111101', 'prod.editor', 'Editor de Producción', 'PRODUCTION'),
+    ('11111111-1111-1111-1111-111111111102', 'atencion.agente', 'Agente de Atención', 'ATTENTION'),
+    ('11111111-1111-1111-1111-111111111103', 'rrhh.gerente', 'Gerente RRHH', 'HR'),
+    ('11111111-1111-1111-1111-111111111104', 'recluta.especialista', 'Especialista Reclutamiento', 'RECRUITMENT'),
+    ('11111111-1111-1111-1111-111111111105', 'marketing.coord', 'Coordinador Marketing', 'MARKETING');
 
 INSERT INTO article (id, title, summary, body, status, author_id, published_at) VALUES
     (

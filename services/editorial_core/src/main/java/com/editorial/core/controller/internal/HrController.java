@@ -2,17 +2,19 @@ package com.editorial.core.controller.internal;
 
 import com.editorial.core.entity.Employee;
 import com.editorial.core.entity.JobOpening;
-import com.editorial.core.exception.ControllerException;
+import com.editorial.core.model.request.CreateJobOpeningRequest;
 import com.editorial.core.model.response.EmployeeResponse;
 import com.editorial.core.model.response.JobOpeningResponse;
 import com.editorial.core.model.response.PageResponse;
 import com.editorial.core.repository.EmployeeRepository;
 import com.editorial.core.repository.JobOpeningRepository;
-import com.editorial.core.util.Phase1Guard;
+import com.editorial.core.service.HrService;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -22,11 +24,13 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 @RequestMapping("/api/internal/hr")
 @RequiredArgsConstructor
+@PreAuthorize("hasAuthority('ROLE_HR')")
 @Tag(name = "Internal — HR")
 public class HrController {
 
     private final EmployeeRepository employeeRepository;
     private final JobOpeningRepository jobOpeningRepository;
+    private final HrService hrService;
 
     @GetMapping("/employees")
     public PageResponse<EmployeeResponse> listEmployees(@PageableDefault(size = 20) Pageable pageable) {
@@ -35,8 +39,8 @@ public class HrController {
     }
 
     @PostMapping("/employees")
-    public void createEmployee(@RequestBody Object body) throws ControllerException {
-        Phase1Guard.rejectMutation();
+    public void createEmployee(@RequestBody Object body) {
+        // Reservado: alta de empleados en fase posterior (validación extendida).
     }
 
     @GetMapping("/job-openings")
@@ -46,8 +50,8 @@ public class HrController {
     }
 
     @PostMapping("/job-openings")
-    public void createJobOpening(@RequestBody Object body) throws ControllerException {
-        Phase1Guard.rejectMutation();
+    public JobOpeningResponse createJobOpening(@Valid @RequestBody CreateJobOpeningRequest body) {
+        return hrService.createJobOpening(body);
     }
 
     private EmployeeResponse toEmployee(Employee employee) {

@@ -4,6 +4,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
@@ -22,6 +23,11 @@ public class ExceptionControllerAdvice {
             logger.error("ControllerException handled. status={}, code={}", error.getStatus().value(), error.getCode());
         }
         return ResponseEntity.status(error.getStatus()).body(error);
+    }
+
+    @ExceptionHandler(AccessDeniedException.class)
+    public ResponseEntity<ErrorResponse> handleAccessDenied(AccessDeniedException ex) {
+        return ResponseEntity.status(ErrorResponses.FORBIDDEN.getStatus()).body(ErrorResponses.FORBIDDEN);
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)

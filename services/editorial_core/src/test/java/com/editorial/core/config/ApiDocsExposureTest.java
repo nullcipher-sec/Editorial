@@ -24,7 +24,10 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
         "spring.datasource.driver-class-name=org.h2.Driver",
         "spring.jpa.hibernate.ddl-auto=create-drop",
         "POSTGRES_USER=sa",
-        "POSTGRES_PASSWORD="
+        "POSTGRES_PASSWORD=",
+        "editorial.jwt.secret=local-dev-only-secret-32-chars-min!!",
+        "editorial.ldap.enabled=false",
+        "editorial.auth.dev-password=secret"
 })
 class ApiDocsExposureTest {
 

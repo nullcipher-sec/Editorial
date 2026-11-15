@@ -53,6 +53,24 @@ services:
       red_datos:
         ipv4_address: 10.20.40.10
 
+  ldap:
+    build:
+      context: ./ldap
+      dockerfile: Dockerfile
+    environment:
+      LDAP_ORGANISATION: Sultana del Lago
+      LDAP_DOMAIN: editorial.local
+      LDAP_ADMIN_PASSWORD: ${LDAP_ADMIN_PASSWORD:-admin_dev_only}
+    healthcheck:
+      test: ["CMD", "ldapsearch", "-x", "-D", "cn=admin,dc=editorial,dc=local", "-w", "admin_dev_only", "-b", "ou=people,dc=editorial,dc=local", "-s", "base", "(objectClass=*)"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+      start_period: 20s
+    networks:
+      red_apps:
+        ipv4_address: 10.20.30.20
+
   editorial_core:
     build:
       context: ../services/editorial_core
@@ -65,10 +83,18 @@ services:
       POSTGRES_USER: ${POSTGRES_USER:-editorial}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-editorial_dev_only}
       POSTGRES_DB: ${POSTGRES_DB:-editorial}
+      EDITORIAL_JWT_SECRET: ${EDITORIAL_JWT_SECRET:-local-dev-only-secret-32-chars-min!!}
+      EDITORIAL_LDAP_ENABLED: "true"
+      LDAP_URL: ldap://10.20.30.20:389
+      LDAP_MANAGER_DN: cn=admin,dc=editorial,dc=local
+      LDAP_MANAGER_PASSWORD: ${LDAP_ADMIN_PASSWORD:-admin_dev_only}
     ports:
       - "${CORE_PORT:-8080}:8080"
     depends_on:
-      - postgres
+      postgres:
+        condition: service_started
+      ldap:
+        condition: service_healthy
     networks:
       red_apps:
         ipv4_address: 10.20.30.10
