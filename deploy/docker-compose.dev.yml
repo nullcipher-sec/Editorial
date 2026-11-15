@@ -1,0 +1,50 @@
+# Entorno local de fase 1: Postgres + Core (no sustituye la topología completa de @luiscab19).
+name: editorial-dev
+
+networks:
+  red_datos:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 10.20.40.0/24
+  red_apps:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 10.20.30.0/24
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-editorial}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-editorial_dev_only}
+      POSTGRES_DB: ${POSTGRES_DB:-editorial}
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - ./db_init/db.sql:/docker-entrypoint-initdb.d/01-schema.sql:ro
+    networks:
+      red_datos:
+        ipv4_address: 10.20.40.10
+
+  editorial_core:
+    build:
+      context: ../services/editorial_core
+      dockerfile: Dockerfile
+    environment:
+      SPRING_PROFILES_ACTIVE: dev
+      CORE_PORT: 8080
+      POSTGRES_HOST: 10.20.40.10
+      POSTGRES_PORT: 5432
+      POSTGRES_USER: ${POSTGRES_USER:-editorial}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-editorial_dev_only}
+      POSTGRES_DB: ${POSTGRES_DB:-editorial}
+    ports:
+      - "${CORE_PORT:-8080}:8080"
+    depends_on:
+      - postgres
+    networks:
+      red_apps:
+        ipv4_address: 10.20.30.10
+      red_datos: {}

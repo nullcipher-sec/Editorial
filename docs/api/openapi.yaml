@@ -1,0 +1,244 @@
+openapi: 3.0.3
+info:
+  title: Sultana del Lago Editores — Core API
+  version: 0.1.0-phase1
+  description: |
+    Contrato estable para integración del equipo. Mutaciones internas devuelven 501 hasta auth LDAP/JWT.
+
+servers:
+  - url: http://localhost:8080
+    description: Desarrollo local
+  - url: http://10.20.30.10:8080
+    description: SRV-Apps-E
+
+tags:
+  - name: Public
+  - name: Internal
+
+paths:
+  /api/public/articles:
+    get:
+      tags: [Public]
+      summary: List published articles (noticiero)
+      parameters:
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/Size'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PublicArticlePage'
+
+  /api/public/articles/{id}:
+    get:
+      tags: [Public]
+      summary: Get one published article
+      parameters:
+        - $ref: '#/components/parameters/ArticleId'
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PublicArticle'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /api/internal/attention/clients:
+    get:
+      tags: [Internal]
+      summary: List clients (Atención)
+      parameters:
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/Size'
+      responses:
+        '200':
+          description: OK
+    post:
+      tags: [Internal]
+      summary: Create client (501 phase 1)
+      responses:
+        '501':
+          $ref: '#/components/responses/NotImplemented'
+
+  /api/internal/attention/cases:
+    get:
+      tags: [Internal]
+      summary: List support cases
+      parameters:
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/Size'
+      responses:
+        '200':
+          description: OK
+    post:
+      tags: [Internal]
+      responses:
+        '501':
+          $ref: '#/components/responses/NotImplemented'
+
+  /api/internal/content/articles:
+    get:
+      tags: [Internal]
+      summary: List all articles (any status) for Producción
+      parameters:
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/Size'
+      responses:
+        '200':
+          description: OK
+    post:
+      tags: [Internal]
+      responses:
+        '501':
+          $ref: '#/components/responses/NotImplemented'
+
+  /api/internal/content/articles/{id}/publish:
+    patch:
+      tags: [Internal]
+      summary: Mark article as published
+      parameters:
+        - $ref: '#/components/parameters/ArticleId'
+      responses:
+        '501':
+          $ref: '#/components/responses/NotImplemented'
+
+  /api/internal/hr/employees:
+    get:
+      tags: [Internal]
+      responses:
+        '200':
+          description: OK
+    post:
+      tags: [Internal]
+      responses:
+        '501':
+          $ref: '#/components/responses/NotImplemented'
+
+  /api/internal/hr/job-openings:
+    get:
+      tags: [Internal]
+      responses:
+        '200':
+          description: OK
+    post:
+      tags: [Internal]
+      responses:
+        '501':
+          $ref: '#/components/responses/NotImplemented'
+
+  /api/internal/recruitment/candidates:
+    get:
+      tags: [Internal]
+      responses:
+        '200':
+          description: OK
+    post:
+      tags: [Internal]
+      responses:
+        '501':
+          $ref: '#/components/responses/NotImplemented'
+
+  /api/internal/events:
+    get:
+      tags: [Internal]
+      responses:
+        '200':
+          description: OK
+    post:
+      tags: [Internal]
+      responses:
+        '501':
+          $ref: '#/components/responses/NotImplemented'
+
+  /api/internal/marketing/campaigns:
+    get:
+      tags: [Internal]
+      responses:
+        '200':
+          description: OK
+    post:
+      tags: [Internal]
+      responses:
+        '501':
+          $ref: '#/components/responses/NotImplemented'
+
+components:
+  parameters:
+    Page:
+      name: page
+      in: query
+      schema:
+        type: integer
+        default: 0
+    Size:
+      name: size
+      in: query
+      schema:
+        type: integer
+        default: 20
+    ArticleId:
+      name: id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+
+  responses:
+    NotFound:
+      description: Resource not found
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorBody'
+    NotImplemented:
+      description: Mutation not available in phase 1
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorBody'
+
+  schemas:
+    ErrorBody:
+      type: object
+      properties:
+        code:
+          type: integer
+        message:
+          type: string
+
+    PublicArticle:
+      type: object
+      required: [id, title, body]
+      properties:
+        id:
+          type: string
+          format: uuid
+        title:
+          type: string
+        summary:
+          type: string
+        body:
+          type: string
+        publishedAt:
+          type: string
+          format: date-time
+
+    PublicArticlePage:
+      type: object
+      properties:
+        content:
+          type: array
+          items:
+            $ref: '#/components/schemas/PublicArticle'
+        page:
+          type: integer
+        size:
+          type: integer
+        totalElements:
+          type: integer
+        totalPages:
+          type: integer
