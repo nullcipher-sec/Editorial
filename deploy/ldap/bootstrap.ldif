@@ -1,4 +1,3 @@
-@"
 dn: ou=people,dc=editorial,dc=local
 objectClass: organizationalUnit
 ou: people
@@ -42,5 +41,52 @@ uidNumber: 10001
 gidNumber: 2200
 homeDirectory: /home/prod.editor
 mail: prod.editor@editorial.local
-userPassword: {SSHA}REEMPLAZA_ESTO_LUEGO
-"@ | Out-File -FilePath deploy/ldap/bootstrap.ldif -Encoding utf8
+userPassword: EditorialDev!2026
+
+dn: uid=atencion.agente,ou=people,dc=editorial,dc=local
+objectClass: inetOrgPerson
+objectClass: posixAccount
+uid: atencion.agente
+cn: Agente de Atencion
+sn: Atencion
+uidNumber: 10002
+gidNumber: 2100
+homeDirectory: /home/atencion.agente
+mail: atencion@editorial.local
+userPassword: EditorialDev!2026
+
+dn: uid=rrhh.gerente,ou=people,dc=editorial,dc=local
+objectClass: inetOrgPerson
+objectClass: posixAccount
+uid: rrhh.gerente
+cn: Gerente RRHH
+sn: RRHH
+uidNumber: 10003
+gidNumber: 2400
+homeDirectory: /home/rrhh.gerente
+mail: rrhh@editorial.local
+userPassword: EditorialDev!2026
+
+dn: uid=recluta.especialista,ou=people,dc=editorial,dc=local
+objectClass: inetOrgPerson
+objectClass: posixAccount
+uid: recluta.especialista
+cn: Especialista Reclutamiento
+sn: Reclutamiento
+uidNumber: 10004
+gidNumber: 2300
+homeDirectory: /home/recluta.especialista
+mail: recluta@editorial.local
+userPassword: EditorialDev!2026
+
+dn: uid=marketing.coord,ou=people,dc=editorial,dc=local
+objectClass: inetOrgPerson
+objectClass: posixAccount
+uid: marketing.coord
+cn: Coordinador Marketing
+sn: Marketing
+uidNumber: 10005
+gidNumber: 2500
+homeDirectory: /home/marketing.coord
+mail: marketing@editorial.local
+userPassword: EditorialDev!2026
