@@ -48,6 +48,41 @@ el respaldo y el núcleo cuentan con energía de respaldo de 72 h (UPS en línea
 | Firewall FW-E y proxy TLS | nftables, NGINX | `deploy/firewall`, `deploy/nginx` |
 | Informe de diseño | LaTeX | `docs/informe` |
 
+## Arquitectura
+
+![Arquitectura](docs/diagrams/png/1-arquitectura.png)
+
+Solo el Core habla con PostgreSQL; las TUI y el noticiero nunca llegan a la base.
+
+## Reglas del firewall (FW-E)
+
+![Reglas del firewall](docs/diagrams/png/2-reglas-firewall.png)
+
+## Autorización por área
+
+![Autorización por área](docs/diagrams/png/3-autorizacion-por-area.png)
+
+## Base de datos
+
+![Modelo de base de datos](docs/diagrams/er-model.png)
+
+## Diagramas de secuencia
+
+### Inicio de sesión (LDAP + JWT)
+
+![Secuencia de inicio de sesión](docs/diagrams/png/4-secuencia-login.png)
+
+### Acceso a una ruta interna
+
+![Secuencia de ruta interna](docs/diagrams/png/5-secuencia-ruta-interna.png)
+
+### Publicación de un artículo y lectura en el noticiero
+
+![Secuencia de publicación](docs/diagrams/png/6-secuencia-publicacion.png)
+
+Los diagramas de arquitectura, firewall, autorización y secuencias son páginas del archivo editable
+`docs/diagrams/diagramas-proyecto.drawio`; el modelo de base de datos está en `docs/diagrams/er-model.drawio`.
+
 ## Estructura del repositorio
 
 ```
