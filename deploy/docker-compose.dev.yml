@@ -101,7 +101,21 @@ services:
         ipv4_address: 10.20.30.10
       red_datos: {}
 
+  noticiero:
+    build:
+      context: ../services/editorial_noticiero
+      dockerfile: Dockerfile
+    environment:
+      CORE_URL: http://10.20.30.10:8080
+    ports:
+      - "${NOTICIERO_PORT:-3000}:8080"
+    depends_on:
+      - editorial_core
+    networks:
+      red_apps: {}
+
   tui_atencion:
+    profiles: ["tui"]
     build:
       context: ../services/editorial_tui
       dockerfile: Dockerfile
@@ -117,6 +131,7 @@ services:
       red_apps: {}
 
   tui_produccion:
+    profiles: ["tui"]
     build:
       context: ../services/editorial_tui
       dockerfile: Dockerfile
@@ -132,6 +147,7 @@ services:
       red_apps: {}
 
   tui_reclutamiento:
+    profiles: ["tui"]
     build:
       context: ../services/editorial_tui
       dockerfile: Dockerfile
@@ -147,6 +163,7 @@ services:
       red_apps: {}
 
   tui_rrhh:
+    profiles: ["tui"]
     build:
       context: ../services/editorial_tui
       dockerfile: Dockerfile
@@ -162,6 +179,7 @@ services:
       red_apps: {}
 
   tui_eventos:
+    profiles: ["tui"]
     build:
       context: ../services/editorial_tui
       dockerfile: Dockerfile

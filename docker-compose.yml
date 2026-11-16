@@ -1,0 +1,20 @@
+# Levanta TODO el proyecto con un solo comando, desde la raíz del repo:
+#
+#   docker compose up -d --build
+#
+#   Core + API       http://localhost:8080  (docs: /scalar)
+#   Noticiero web    http://localhost:3000
+#   PostgreSQL       localhost:5432   |   LDAP en la red interna
+#
+# Terminales TUI (interactivas, una por área; usa los usuarios de docs/guia-despliegue-pruebas.md):
+#
+#   docker compose run --rm tui_atencion      (o tui_produccion, tui_rrhh, tui_reclutamiento, tui_eventos)
+#
+# Apagar:   docker compose down        (añade -v para borrar los datos de desarrollo)
+#
+# Solo para desarrollo local: usa valores por defecto sin secretos reales.
+name: editorial-dev
+
+include:
+  - path: deploy/docker-compose.dev.yml
+    env_file: deploy/.env.dev.example

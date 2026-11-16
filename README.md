@@ -117,6 +117,20 @@ deben validarse en la infraestructura correspondiente.
 Las terminales TUI no contienen datos en memoria ni perfiles de prueba. El acceso siempre se valida
 contra el Core y `CORE_API_URL` debe apuntar al servicio accesible desde la red del área.
 
+## Arranque con un solo comando
+
+```bash
+docker compose up -d --build     # Postgres + LDAP + Core + noticiero
+```
+
+- API del Core y documentación: http://localhost:8080 (`/scalar`)
+- Noticiero web: http://localhost:3000
+- Terminales TUI (interactivas): `docker compose run --rm tui_atencion` (también `tui_produccion`,
+  `tui_rrhh`, `tui_reclutamiento`, `tui_eventos`)
+- Apagar: `docker compose down` (con `-v` borra los datos de desarrollo)
+
+El Core tarda hasta ~1 min en responder la primera vez. No requiere `.env`: usa valores de desarrollo.
+
 ## Arranque rápido (desarrollo)
 
 ```bash
