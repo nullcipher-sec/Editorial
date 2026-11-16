@@ -114,9 +114,26 @@ red Docker separada para cada una. Esto reproduce aislamiento lógico para desar
 equivale a VLAN 802.1Q, switches, rutas inter-VLAN ni políticas reales de `FW-E`; esas propiedades
 deben validarse en la infraestructura correspondiente.
 
-Las terminales con `MOCK_MODE=true` usan datos en memoria y perfiles de prueba. No prueban LDAP,
-JWT, PostgreSQL ni la conectividad real entre VLAN. Para una integración real deben ejecutarse con
-`MOCK_MODE=false` y `CORE_API_URL` apuntando al Core accesible desde la red del área.
+Las terminales TUI no contienen datos en memoria ni perfiles de prueba. El acceso siempre se valida
+contra el Core y `CORE_API_URL` debe apuntar al servicio accesible desde la red del área.
+
+## Arranque rápido (desarrollo)
+
+```bash
+./run services              # PostgreSQL, LDAP y Core
+./run stop                  # elimina contenedores y redes
+./run tui_atencion          # abre la TUI de Atención
+./run tui_produccion        # abre la TUI de Producción
+./run tui_rrhh              # abre la TUI de RRHH
+./run tui_recluta           # abre la TUI de Reclutamiento
+./run tui_eventos           # abre la TUI de Eventos
+```
+
+El primer comando crea `deploy/.env` automáticamente desde `deploy/.env.dev.example` si todavía
+no existe. Cada comando `tui_*` reutiliza los servicios ya levantados, construye solo la imagen
+Scalar en `http://localhost:8080/scalar`. Usuarios, pruebas de 401/403 y resolución de problemas:
+`docs/guia-despliegue-pruebas.md`. La topología completa con firewall, TLS y relevo se levanta con
+`deploy/docker-compose.yml` (ver `deploy/`).
 
 ## Arranque rápido (desarrollo)
 

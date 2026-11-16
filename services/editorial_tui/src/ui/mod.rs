@@ -20,7 +20,7 @@ pub fn render_app(frame: &mut Frame, app: &App) {
         ])
         .split(frame.area());
 
-    render_header(frame, main_layout[0], app.session.as_ref(), app.config.mock_mode);
+    render_header(frame, main_layout[0], app.session.as_ref());
 
     match app.current_screen {
         CurrentScreen::Login => render_login(frame, main_layout[1], app),
@@ -32,10 +32,14 @@ pub fn render_app(frame: &mut Frame, app: &App) {
     }
 
     let hint = match app.current_screen {
-        CurrentScreen::Login => "Login: Use [1-4] para perfiles rápidos o escriba credenciales",
+        CurrentScreen::Login => "Login: escriba sus credenciales LDAP y presione [Enter]",
         CurrentScreen::MainMenu => "Menú: [↑/↓] Navegar  [Enter] Acceder  [5/Esc] Cerrar Sesión",
-        CurrentScreen::Attention => "Atención: [S] Avanzar Estado  [C] Clientes  [N] Nuevo Caso  [Esc] Volver",
-        CurrentScreen::Content => "Contenido: [Enter] Leer  [N] Redactar  [R] Revisión  [P] Publicar",
+        CurrentScreen::Attention => {
+            "Atención: [S] Avanzar Estado  [C] Clientes  [N] Nuevo Caso  [Esc] Volver"
+        }
+        CurrentScreen::Content => {
+            "Contenido: [Enter] Leer  [N] Redactar  [R] Revisión  [P] Publicar"
+        }
         CurrentScreen::Hr => "RRHH: [V] Vacantes  [C] Candidatos  [E] Empleados  [Esc] Volver",
         CurrentScreen::Events => "Eventos: [N] Programar  [↑/↓] Navegar  [Esc] Volver",
     };

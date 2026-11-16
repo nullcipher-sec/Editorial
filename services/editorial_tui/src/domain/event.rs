@@ -16,6 +16,7 @@ pub struct Event {
 }
 
 #[derive(Debug, Clone, Validate, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct CreateEventInput {
     #[validate(length(min = 3, max = 255, message = "El nombre del evento debe tener entre 3 y 255 caracteres"))]
     pub name: String,

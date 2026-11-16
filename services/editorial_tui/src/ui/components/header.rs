@@ -8,7 +8,7 @@ use ratatui::{
     Frame,
 };
 
-pub fn render_header(frame: &mut Frame, area: Rect, session: Option<&Session>, mock_mode: bool) {
+pub fn render_header(frame: &mut Frame, area: Rect, session: Option<&Session>) {
     let chunks = Layout::default()
         .direction(Direction::Horizontal)
         .constraints([Constraint::Percentage(50), Constraint::Percentage(50)])
@@ -34,25 +34,8 @@ pub fn render_header(frame: &mut Frame, area: Rect, session: Option<&Session>, m
     );
     frame.render_widget(title_widget, chunks[0]);
 
-    let mode_tag = if mock_mode {
-        Span::styled(
-            "[SIMULACIÓN EN MEMORIA] ",
-            Style::default()
-                .fg(SULTANA_THEME.warning)
-                .add_modifier(Modifier::BOLD),
-        )
-    } else {
-        Span::styled(
-            "[CORE; FALLBACK DE SIMULACIÓN] ",
-            Style::default()
-                .fg(SULTANA_THEME.success)
-                .add_modifier(Modifier::BOLD),
-        )
-    };
-
     let user_info = if let Some(s) = session {
         vec![
-            mode_tag,
             Span::styled("Usuario: ", Style::default().fg(SULTANA_THEME.text_dim)),
             Span::styled(
                 format!("{} ", s.user.display_name),
@@ -66,13 +49,10 @@ pub fn render_header(frame: &mut Frame, area: Rect, session: Option<&Session>, m
             ),
         ]
     } else {
-        vec![
-            mode_tag,
-            Span::styled(
-                "No autenticado ",
-                Style::default().fg(SULTANA_THEME.danger),
-            ),
-        ]
+        vec![Span::styled(
+            "No autenticado ",
+            Style::default().fg(SULTANA_THEME.danger),
+        )]
     };
 
     let status_widget = Paragraph::new(Line::from(user_info))

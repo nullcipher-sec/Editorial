@@ -73,7 +73,7 @@ Prefijo común: `/api/internal/...` (Bearer obligatorio salvo login).
 | Eventos | `/events` |
 | Marketing | `/marketing/campaigns` |
 
-`MOCK_MODE=false` y `CORE_API_URL=http://editorial_core:8080` en `docker-compose.dev.yml`.
+`CORE_API_URL=http://10.20.30.10:8080` en `docker-compose.dev.yml`.
 
 ## Para infra (@luiscab19)
 
