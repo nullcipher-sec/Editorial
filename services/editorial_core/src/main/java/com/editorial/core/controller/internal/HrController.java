@@ -45,6 +45,7 @@ public class HrController {
         return hrService.createEmployee(body);
     }
 
+    @PreAuthorize("hasAnyAuthority('ROLE_HR', 'ROLE_RECRUITMENT')")
     @GetMapping("/job-openings")
     public PageResponse<JobOpeningResponse> listJobOpenings(@PageableDefault(size = 20) Pageable pageable) {
         var page = jobOpeningRepository.findAll(pageable);
