@@ -1,10 +1,9 @@
-use super::{ApiError, EditorialApi, MockApiClient};
+use super::{ApiError, EditorialApi};
 use crate::auth::Session;
 use crate::domain::{
-    Article, ArticleStatus, ArticleSummary, Candidate, CaseStatus, Client,
-    CreateArticleInput, CreateCandidateInput, CreateCaseInput, CreateClientInput,
-    CreateEventInput, CreateJobOpeningInput, Employee, Event, JobOpening, PageResponse,
-    SupportCase,
+    Article, ArticleStatus, ArticleSummary, Candidate, CaseStatus, Client, CreateArticleInput,
+    CreateCandidateInput, CreateCaseInput, CreateClientInput, CreateEventInput,
+    CreateJobOpeningInput, Employee, Event, JobOpening, PageResponse, SupportCase,
 };
 use reqwest::{header, Client as HttpClient, StatusCode};
 use std::sync::Arc;
@@ -17,13 +16,15 @@ pub struct HttpApiClient {
     client: HttpClient,
     base_url: String,
     token: Arc<RwLock<Option<String>>>,
-    fallback: MockApiClient,
 }
 
 impl HttpApiClient {
     pub fn new(base_url: String) -> Self {
         let mut headers = header::HeaderMap::new();
-        headers.insert(header::ACCEPT, header::HeaderValue::from_static("application/json"));
+        headers.insert(
+            header::ACCEPT,
+            header::HeaderValue::from_static("application/json"),
+        );
 
         let client = HttpClient::builder()
             .timeout(Duration::from_secs(5))
@@ -35,7 +36,6 @@ impl HttpApiClient {
             client,
             base_url: base_url.trim_end_matches('/').to_string(),
             token: Arc::new(RwLock::new(None)),
-            fallback: MockApiClient::new(),
         }
     }
 
@@ -96,15 +96,22 @@ impl EditorialApi for HttpApiClient {
                     }
                     Ok(session)
                 } else {
-                    self.fallback.login(username, password).await
+                    Self::handle_status(status).await?;
+                    Err(ApiError::Network(format!("Estado inesperado: {}", status)))
                 }
             }
-            Err(_) => self.fallback.login(username, password).await,
+            Err(e) => Err(ApiError::Network(format!(
+                "No se pudo conectar con el Core: {}",
+                e
+            ))),
         }
     }
 
     async fn list_clients(&self, page: u32, size: u32) -> Result<PageResponse<Client>, ApiError> {
-        let url = format!("{}/api/internal/attention/clients?page={}&size={}", self.base_url, page, size);
+        let url = format!(
+            "{}/api/internal/attention/clients?page={}&size={}",
+            self.base_url, page, size
+        );
         let mut req = self.client.get(&url);
         if let Some(h) = self.auth_header().await {
             req = req.header(header::AUTHORIZATION, h);
@@ -114,15 +121,18 @@ impl EditorialApi for HttpApiClient {
             Ok(resp) => {
                 let status = resp.status();
                 if status.is_success() {
-                    resp.json().await.map_err(|e| ApiError::Serialization(e.to_string()))
-                } else if status == StatusCode::NOT_IMPLEMENTED {
-                    self.fallback.list_clients(page, size).await
+                    resp.json()
+                        .await
+                        .map_err(|e| ApiError::Serialization(e.to_string()))
                 } else {
                     Self::handle_status(status).await?;
                     Err(ApiError::Network(format!("Estado inesperado: {}", status)))
                 }
             }
-            Err(_) => self.fallback.list_clients(page, size).await,
+            Err(e) => Err(ApiError::Network(format!(
+                "No se pudo conectar con el Core: {}",
+                e
+            ))),
         }
     }
 
@@ -137,20 +147,30 @@ impl EditorialApi for HttpApiClient {
             Ok(resp) => {
                 let status = resp.status();
                 if status.is_success() {
-                    resp.json().await.map_err(|e| ApiError::Serialization(e.to_string()))
-                } else if status == StatusCode::NOT_IMPLEMENTED {
-                    self.fallback.create_client(input).await
+                    resp.json()
+                        .await
+                        .map_err(|e| ApiError::Serialization(e.to_string()))
                 } else {
                     Self::handle_status(status).await?;
                     Err(ApiError::Network(format!("Estado inesperado: {}", status)))
                 }
             }
-            Err(_) => self.fallback.create_client(input).await,
+            Err(e) => Err(ApiError::Network(format!(
+                "No se pudo conectar con el Core: {}",
+                e
+            ))),
         }
     }
 
-    async fn list_cases(&self, page: u32, size: u32) -> Result<PageResponse<SupportCase>, ApiError> {
-        let url = format!("{}/api/internal/attention/cases?page={}&size={}", self.base_url, page, size);
+    async fn list_cases(
+        &self,
+        page: u32,
+        size: u32,
+    ) -> Result<PageResponse<SupportCase>, ApiError> {
+        let url = format!(
+            "{}/api/internal/attention/cases?page={}&size={}",
+            self.base_url, page, size
+        );
         let mut req = self.client.get(&url);
         if let Some(h) = self.auth_header().await {
             req = req.header(header::AUTHORIZATION, h);
@@ -160,15 +180,18 @@ impl EditorialApi for HttpApiClient {
             Ok(resp) => {
                 let status = resp.status();
                 if status.is_success() {
-                    resp.json().await.map_err(|e| ApiError::Serialization(e.to_string()))
-                } else if status == StatusCode::NOT_IMPLEMENTED {
-                    self.fallback.list_cases(page, size).await
+                    resp.json()
+                        .await
+                        .map_err(|e| ApiError::Serialization(e.to_string()))
                 } else {
                     Self::handle_status(status).await?;
                     Err(ApiError::Network(format!("Estado inesperado: {}", status)))
                 }
             }
-            Err(_) => self.fallback.list_cases(page, size).await,
+            Err(e) => Err(ApiError::Network(format!(
+                "No se pudo conectar con el Core: {}",
+                e
+            ))),
         }
     }
 
@@ -183,21 +206,31 @@ impl EditorialApi for HttpApiClient {
             Ok(resp) => {
                 let status = resp.status();
                 if status.is_success() {
-                    resp.json().await.map_err(|e| ApiError::Serialization(e.to_string()))
-                } else if status == StatusCode::NOT_IMPLEMENTED {
-                    self.fallback.create_case(input).await
+                    resp.json()
+                        .await
+                        .map_err(|e| ApiError::Serialization(e.to_string()))
                 } else {
                     Self::handle_status(status).await?;
                     Err(ApiError::Network(format!("Estado inesperado: {}", status)))
                 }
             }
-            Err(_) => self.fallback.create_case(input).await,
+            Err(e) => Err(ApiError::Network(format!(
+                "No se pudo conectar con el Core: {}",
+                e
+            ))),
         }
     }
 
-    async fn update_case_status(&self, id: Uuid, status: CaseStatus) -> Result<SupportCase, ApiError> {
+    async fn update_case_status(
+        &self,
+        id: Uuid,
+        status: CaseStatus,
+    ) -> Result<SupportCase, ApiError> {
         let url = format!("{}/api/internal/attention/cases/{}", self.base_url, id);
-        let mut req = self.client.patch(&url).json(&serde_json::json!({ "status": status.as_str() }));
+        let mut req = self
+            .client
+            .patch(&url)
+            .json(&serde_json::json!({ "status": status.as_str() }));
         if let Some(h) = self.auth_header().await {
             req = req.header(header::AUTHORIZATION, h);
         }
@@ -206,20 +239,30 @@ impl EditorialApi for HttpApiClient {
             Ok(resp) => {
                 let s = resp.status();
                 if s.is_success() {
-                    resp.json().await.map_err(|e| ApiError::Serialization(e.to_string()))
-                } else if s == StatusCode::NOT_IMPLEMENTED || s == StatusCode::NOT_FOUND {
-                    self.fallback.update_case_status(id, status).await
+                    resp.json()
+                        .await
+                        .map_err(|e| ApiError::Serialization(e.to_string()))
                 } else {
                     Self::handle_status(s).await?;
                     Err(ApiError::Network(format!("Estado inesperado: {}", s)))
                 }
             }
-            Err(_) => self.fallback.update_case_status(id, status).await,
+            Err(e) => Err(ApiError::Network(format!(
+                "No se pudo conectar con el Core: {}",
+                e
+            ))),
         }
     }
 
-    async fn list_articles(&self, page: u32, size: u32) -> Result<PageResponse<ArticleSummary>, ApiError> {
-        let url = format!("{}/api/internal/content/articles?page={}&size={}", self.base_url, page, size);
+    async fn list_articles(
+        &self,
+        page: u32,
+        size: u32,
+    ) -> Result<PageResponse<ArticleSummary>, ApiError> {
+        let url = format!(
+            "{}/api/internal/content/articles?page={}&size={}",
+            self.base_url, page, size
+        );
         let mut req = self.client.get(&url);
         if let Some(h) = self.auth_header().await {
             req = req.header(header::AUTHORIZATION, h);
@@ -229,15 +272,18 @@ impl EditorialApi for HttpApiClient {
             Ok(resp) => {
                 let status = resp.status();
                 if status.is_success() {
-                    resp.json().await.map_err(|e| ApiError::Serialization(e.to_string()))
-                } else if status == StatusCode::NOT_IMPLEMENTED {
-                    self.fallback.list_articles(page, size).await
+                    resp.json()
+                        .await
+                        .map_err(|e| ApiError::Serialization(e.to_string()))
                 } else {
                     Self::handle_status(status).await?;
                     Err(ApiError::Network(format!("Estado inesperado: {}", status)))
                 }
             }
-            Err(_) => self.fallback.list_articles(page, size).await,
+            Err(e) => Err(ApiError::Network(format!(
+                "No se pudo conectar con el Core: {}",
+                e
+            ))),
         }
     }
 
@@ -247,12 +293,18 @@ impl EditorialApi for HttpApiClient {
             Ok(resp) => {
                 let status = resp.status();
                 if status.is_success() {
-                    resp.json().await.map_err(|e| ApiError::Serialization(e.to_string()))
+                    resp.json()
+                        .await
+                        .map_err(|e| ApiError::Serialization(e.to_string()))
                 } else {
-                    self.fallback.get_article(id).await
+                    Self::handle_status(status).await?;
+                    Err(ApiError::Network(format!("Estado inesperado: {}", status)))
                 }
             }
-            Err(_) => self.fallback.get_article(id).await,
+            Err(e) => Err(ApiError::Network(format!(
+                "No se pudo conectar con el Core: {}",
+                e
+            ))),
         }
     }
 
@@ -267,21 +319,31 @@ impl EditorialApi for HttpApiClient {
             Ok(resp) => {
                 let status = resp.status();
                 if status.is_success() {
-                    resp.json().await.map_err(|e| ApiError::Serialization(e.to_string()))
-                } else if status == StatusCode::NOT_IMPLEMENTED {
-                    self.fallback.create_article(input).await
+                    resp.json()
+                        .await
+                        .map_err(|e| ApiError::Serialization(e.to_string()))
                 } else {
                     Self::handle_status(status).await?;
                     Err(ApiError::Network(format!("Estado inesperado: {}", status)))
                 }
             }
-            Err(_) => self.fallback.create_article(input).await,
+            Err(e) => Err(ApiError::Network(format!(
+                "No se pudo conectar con el Core: {}",
+                e
+            ))),
         }
     }
 
-    async fn update_article_status(&self, id: Uuid, status: ArticleStatus) -> Result<Article, ApiError> {
+    async fn update_article_status(
+        &self,
+        id: Uuid,
+        status: ArticleStatus,
+    ) -> Result<Article, ApiError> {
         let url = if status == ArticleStatus::Published {
-            format!("{}/api/internal/content/articles/{}/publish", self.base_url, id)
+            format!(
+                "{}/api/internal/content/articles/{}/publish",
+                self.base_url, id
+            )
         } else {
             format!("{}/api/internal/content/articles/{}", self.base_url, id)
         };
@@ -295,20 +357,30 @@ impl EditorialApi for HttpApiClient {
             Ok(resp) => {
                 let s = resp.status();
                 if s.is_success() {
-                    resp.json().await.map_err(|e| ApiError::Serialization(e.to_string()))
-                } else if s == StatusCode::NOT_IMPLEMENTED || s == StatusCode::NOT_FOUND {
-                    self.fallback.update_article_status(id, status).await
+                    resp.json()
+                        .await
+                        .map_err(|e| ApiError::Serialization(e.to_string()))
                 } else {
                     Self::handle_status(s).await?;
                     Err(ApiError::Network(format!("Estado inesperado: {}", s)))
                 }
             }
-            Err(_) => self.fallback.update_article_status(id, status).await,
+            Err(e) => Err(ApiError::Network(format!(
+                "No se pudo conectar con el Core: {}",
+                e
+            ))),
         }
     }
 
-    async fn list_employees(&self, page: u32, size: u32) -> Result<PageResponse<Employee>, ApiError> {
-        let url = format!("{}/api/internal/hr/employees?page={}&size={}", self.base_url, page, size);
+    async fn list_employees(
+        &self,
+        page: u32,
+        size: u32,
+    ) -> Result<PageResponse<Employee>, ApiError> {
+        let url = format!(
+            "{}/api/internal/hr/employees?page={}&size={}",
+            self.base_url, page, size
+        );
         let mut req = self.client.get(&url);
         if let Some(h) = self.auth_header().await {
             req = req.header(header::AUTHORIZATION, h);
@@ -318,20 +390,30 @@ impl EditorialApi for HttpApiClient {
             Ok(resp) => {
                 let status = resp.status();
                 if status.is_success() {
-                    resp.json().await.map_err(|e| ApiError::Serialization(e.to_string()))
-                } else if status == StatusCode::NOT_IMPLEMENTED {
-                    self.fallback.list_employees(page, size).await
+                    resp.json()
+                        .await
+                        .map_err(|e| ApiError::Serialization(e.to_string()))
                 } else {
                     Self::handle_status(status).await?;
                     Err(ApiError::Network(format!("Estado inesperado: {}", status)))
                 }
             }
-            Err(_) => self.fallback.list_employees(page, size).await,
+            Err(e) => Err(ApiError::Network(format!(
+                "No se pudo conectar con el Core: {}",
+                e
+            ))),
         }
     }
 
-    async fn list_job_openings(&self, page: u32, size: u32) -> Result<PageResponse<JobOpening>, ApiError> {
-        let url = format!("{}/api/internal/hr/job-openings?page={}&size={}", self.base_url, page, size);
+    async fn list_job_openings(
+        &self,
+        page: u32,
+        size: u32,
+    ) -> Result<PageResponse<JobOpening>, ApiError> {
+        let url = format!(
+            "{}/api/internal/hr/job-openings?page={}&size={}",
+            self.base_url, page, size
+        );
         let mut req = self.client.get(&url);
         if let Some(h) = self.auth_header().await {
             req = req.header(header::AUTHORIZATION, h);
@@ -341,19 +423,25 @@ impl EditorialApi for HttpApiClient {
             Ok(resp) => {
                 let status = resp.status();
                 if status.is_success() {
-                    resp.json().await.map_err(|e| ApiError::Serialization(e.to_string()))
-                } else if status == StatusCode::NOT_IMPLEMENTED {
-                    self.fallback.list_job_openings(page, size).await
+                    resp.json()
+                        .await
+                        .map_err(|e| ApiError::Serialization(e.to_string()))
                 } else {
                     Self::handle_status(status).await?;
                     Err(ApiError::Network(format!("Estado inesperado: {}", status)))
                 }
             }
-            Err(_) => self.fallback.list_job_openings(page, size).await,
+            Err(e) => Err(ApiError::Network(format!(
+                "No se pudo conectar con el Core: {}",
+                e
+            ))),
         }
     }
 
-    async fn create_job_opening(&self, input: CreateJobOpeningInput) -> Result<JobOpening, ApiError> {
+    async fn create_job_opening(
+        &self,
+        input: CreateJobOpeningInput,
+    ) -> Result<JobOpening, ApiError> {
         let url = format!("{}/api/internal/hr/job-openings", self.base_url);
         let mut req = self.client.post(&url).json(&input);
         if let Some(h) = self.auth_header().await {
@@ -364,20 +452,30 @@ impl EditorialApi for HttpApiClient {
             Ok(resp) => {
                 let status = resp.status();
                 if status.is_success() {
-                    resp.json().await.map_err(|e| ApiError::Serialization(e.to_string()))
-                } else if status == StatusCode::NOT_IMPLEMENTED {
-                    self.fallback.create_job_opening(input).await
+                    resp.json()
+                        .await
+                        .map_err(|e| ApiError::Serialization(e.to_string()))
                 } else {
                     Self::handle_status(status).await?;
                     Err(ApiError::Network(format!("Estado inesperado: {}", status)))
                 }
             }
-            Err(_) => self.fallback.create_job_opening(input).await,
+            Err(e) => Err(ApiError::Network(format!(
+                "No se pudo conectar con el Core: {}",
+                e
+            ))),
         }
     }
 
-    async fn list_candidates(&self, page: u32, size: u32) -> Result<PageResponse<Candidate>, ApiError> {
-        let url = format!("{}/api/internal/recruitment/candidates?page={}&size={}", self.base_url, page, size);
+    async fn list_candidates(
+        &self,
+        page: u32,
+        size: u32,
+    ) -> Result<PageResponse<Candidate>, ApiError> {
+        let url = format!(
+            "{}/api/internal/recruitment/candidates?page={}&size={}",
+            self.base_url, page, size
+        );
         let mut req = self.client.get(&url);
         if let Some(h) = self.auth_header().await {
             req = req.header(header::AUTHORIZATION, h);
@@ -387,15 +485,18 @@ impl EditorialApi for HttpApiClient {
             Ok(resp) => {
                 let status = resp.status();
                 if status.is_success() {
-                    resp.json().await.map_err(|e| ApiError::Serialization(e.to_string()))
-                } else if status == StatusCode::NOT_IMPLEMENTED {
-                    self.fallback.list_candidates(page, size).await
+                    resp.json()
+                        .await
+                        .map_err(|e| ApiError::Serialization(e.to_string()))
                 } else {
                     Self::handle_status(status).await?;
                     Err(ApiError::Network(format!("Estado inesperado: {}", status)))
                 }
             }
-            Err(_) => self.fallback.list_candidates(page, size).await,
+            Err(e) => Err(ApiError::Network(format!(
+                "No se pudo conectar con el Core: {}",
+                e
+            ))),
         }
     }
 
@@ -410,20 +511,26 @@ impl EditorialApi for HttpApiClient {
             Ok(resp) => {
                 let status = resp.status();
                 if status.is_success() {
-                    resp.json().await.map_err(|e| ApiError::Serialization(e.to_string()))
-                } else if status == StatusCode::NOT_IMPLEMENTED {
-                    self.fallback.create_candidate(input).await
+                    resp.json()
+                        .await
+                        .map_err(|e| ApiError::Serialization(e.to_string()))
                 } else {
                     Self::handle_status(status).await?;
                     Err(ApiError::Network(format!("Estado inesperado: {}", status)))
                 }
             }
-            Err(_) => self.fallback.create_candidate(input).await,
+            Err(e) => Err(ApiError::Network(format!(
+                "No se pudo conectar con el Core: {}",
+                e
+            ))),
         }
     }
 
     async fn list_events(&self, page: u32, size: u32) -> Result<PageResponse<Event>, ApiError> {
-        let url = format!("{}/api/internal/events?page={}&size={}", self.base_url, page, size);
+        let url = format!(
+            "{}/api/internal/events?page={}&size={}",
+            self.base_url, page, size
+        );
         let mut req = self.client.get(&url);
         if let Some(h) = self.auth_header().await {
             req = req.header(header::AUTHORIZATION, h);
@@ -433,15 +540,18 @@ impl EditorialApi for HttpApiClient {
             Ok(resp) => {
                 let status = resp.status();
                 if status.is_success() {
-                    resp.json().await.map_err(|e| ApiError::Serialization(e.to_string()))
-                } else if status == StatusCode::NOT_IMPLEMENTED {
-                    self.fallback.list_events(page, size).await
+                    resp.json()
+                        .await
+                        .map_err(|e| ApiError::Serialization(e.to_string()))
                 } else {
                     Self::handle_status(status).await?;
                     Err(ApiError::Network(format!("Estado inesperado: {}", status)))
                 }
             }
-            Err(_) => self.fallback.list_events(page, size).await,
+            Err(e) => Err(ApiError::Network(format!(
+                "No se pudo conectar con el Core: {}",
+                e
+            ))),
         }
     }
 
@@ -456,15 +566,18 @@ impl EditorialApi for HttpApiClient {
             Ok(resp) => {
                 let status = resp.status();
                 if status.is_success() {
-                    resp.json().await.map_err(|e| ApiError::Serialization(e.to_string()))
-                } else if status == StatusCode::NOT_IMPLEMENTED {
-                    self.fallback.create_event(input).await
+                    resp.json()
+                        .await
+                        .map_err(|e| ApiError::Serialization(e.to_string()))
                 } else {
                     Self::handle_status(status).await?;
                     Err(ApiError::Network(format!("Estado inesperado: {}", status)))
                 }
             }
-            Err(_) => self.fallback.create_event(input).await,
+            Err(e) => Err(ApiError::Network(format!(
+                "No se pudo conectar con el Core: {}",
+                e
+            ))),
         }
     }
 }

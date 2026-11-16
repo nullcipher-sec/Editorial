@@ -48,6 +48,41 @@ el respaldo y el núcleo cuentan con energía de respaldo de 72 h (UPS en línea
 | Firewall FW-E y proxy TLS | nftables, NGINX | `deploy/firewall`, `deploy/nginx` |
 | Informe de diseño | LaTeX | `docs/informe` |
 
+## Arquitectura
+
+![Arquitectura](docs/diagrams/png/1-arquitectura.png)
+
+Solo el Core habla con PostgreSQL; las TUI y el noticiero nunca llegan a la base.
+
+## Reglas del firewall (FW-E)
+
+![Reglas del firewall](docs/diagrams/png/2-reglas-firewall.png)
+
+## Autorización por área
+
+![Autorización por área](docs/diagrams/png/3-autorizacion-por-area.png)
+
+## Base de datos
+
+![Modelo de base de datos](docs/diagrams/er-model.png)
+
+## Diagramas de secuencia
+
+### Inicio de sesión (LDAP + JWT)
+
+![Secuencia de inicio de sesión](docs/diagrams/png/4-secuencia-login.png)
+
+### Acceso a una ruta interna
+
+![Secuencia de ruta interna](docs/diagrams/png/5-secuencia-ruta-interna.png)
+
+### Publicación de un artículo y lectura en el noticiero
+
+![Secuencia de publicación](docs/diagrams/png/6-secuencia-publicacion.png)
+
+Los diagramas de arquitectura, firewall, autorización y secuencias son páginas del archivo editable
+`docs/diagrams/diagramas-proyecto.drawio`; el modelo de base de datos está en `docs/diagrams/er-model.drawio`.
+
 ## Estructura del repositorio
 
 ```
@@ -79,9 +114,26 @@ red Docker separada para cada una. Esto reproduce aislamiento lógico para desar
 equivale a VLAN 802.1Q, switches, rutas inter-VLAN ni políticas reales de `FW-E`; esas propiedades
 deben validarse en la infraestructura correspondiente.
 
-Las terminales con `MOCK_MODE=true` usan datos en memoria y perfiles de prueba. No prueban LDAP,
-JWT, PostgreSQL ni la conectividad real entre VLAN. Para una integración real deben ejecutarse con
-`MOCK_MODE=false` y `CORE_API_URL` apuntando al Core accesible desde la red del área.
+Las terminales TUI no contienen datos en memoria ni perfiles de prueba. El acceso siempre se valida
+contra el Core y `CORE_API_URL` debe apuntar al servicio accesible desde la red del área.
+
+## Arranque rápido (desarrollo)
+
+```bash
+./run services              # PostgreSQL, LDAP y Core
+./run stop                  # elimina contenedores y redes
+./run tui_atencion          # abre la TUI de Atención
+./run tui_produccion        # abre la TUI de Producción
+./run tui_rrhh              # abre la TUI de RRHH
+./run tui_recluta           # abre la TUI de Reclutamiento
+./run tui_eventos           # abre la TUI de Eventos
+```
+
+El primer comando crea `deploy/.env` automáticamente desde `deploy/.env.dev.example` si todavía
+no existe. Cada comando `tui_*` reutiliza los servicios ya levantados, construye solo la imagen
+Scalar en `http://localhost:8080/scalar`. Usuarios, pruebas de 401/403 y resolución de problemas:
+`docs/guia-despliegue-pruebas.md`. La topología completa con firewall, TLS y relevo se levanta con
+`deploy/docker-compose.yml` (ver `deploy/`).
 
 ## Flujo de trabajo
 

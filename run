@@ -1,0 +1,76 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+COMPOSE_FILE="$ROOT_DIR/deploy/docker-compose.dev.yml"
+ENV_FILE="$ROOT_DIR/deploy/.env"
+
+if ! command -v docker >/dev/null 2>&1; then
+    echo "ERROR: Docker no está instalado o no está disponible en PATH." >&2
+    exit 1
+fi
+
+if [ ! -f "$ENV_FILE" ]; then
+    echo "Creando deploy/.env desde deploy/.env.dev.example..."
+    cp "$ROOT_DIR/deploy/.env.dev.example" "$ENV_FILE"
+fi
+
+compose() {
+    docker compose --env-file "$ENV_FILE" -f "$COMPOSE_FILE" "$@"
+}
+
+wait_for_core() {
+    for _ in {1..60}; do
+        if curl --silent --fail http://localhost:8080/actuator/health >/dev/null 2>&1; then
+            return 0
+        fi
+        sleep 1
+    done
+
+    echo "ERROR: el Core no respondió en http://localhost:8080/actuator/health." >&2
+    compose logs --tail 80 editorial_core >&2 || true
+    return 1
+}
+
+start_services() {
+    compose up -d --build postgres ldap editorial_core
+    wait_for_core
+}
+
+ensure_services() {
+    if ! compose up -d --no-build postgres ldap editorial_core; then
+        compose up -d --build postgres ldap editorial_core
+    fi
+    wait_for_core
+}
+
+run_tui() {
+    local service="$1"
+    ensure_services
+    compose build "$service"
+    compose run --rm --no-deps "$service"
+}
+
+case "${1:-}" in
+    services)
+        start_services
+        ;;
+    stop)
+        compose down
+        ;;
+    tui_atencion|tui_produccion|tui_rrhh|tui_reclutamiento|tui_recluta|tui_eventos)
+        [ "$1" = "tui_recluta" ] && set -- tui_reclutamiento
+        run_tui "$1"
+        ;;
+    *)
+        echo "Uso:"
+        echo "  ./run services"
+        echo "  ./run stop"
+        echo "  ./run tui_atencion"
+        echo "  ./run tui_produccion"
+        echo "  ./run tui_rrhh"
+        echo "  ./run tui_recluta"
+        echo "  ./run tui_eventos"
+        exit 1
+        ;;
+esac

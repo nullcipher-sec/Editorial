@@ -49,6 +49,7 @@ services:
       - "${POSTGRES_PORT:-5432}:5432"
     volumes:
       - ./db_init/db.sql:/docker-entrypoint-initdb.d/01-schema.sql:ro
+      - ./db_init/seed.sql:/docker-entrypoint-initdb.d/02-seed.sql:ro
     networks:
       red_datos:
         ipv4_address: 10.20.40.10
@@ -79,16 +80,14 @@ services:
       context: ../services/editorial_tui
       dockerfile: Dockerfile
     environment:
-      CORE_API_URL: http://editorial_core:8080
-      MOCK_MODE: "false"
+      CORE_API_URL: http://10.20.30.10:8080
       TERMINAL_AREA: ATTENTION
     depends_on:
       - editorial_core
     stdin_open: true
     tty: true
     networks:
-      red_atencion:
-        ipv4_address: 10.20.210.10
+      red_atencion: {}
       red_apps: {}
 
   tui_produccion:
@@ -96,16 +95,14 @@ services:
       context: ../services/editorial_tui
       dockerfile: Dockerfile
     environment:
-      CORE_API_URL: http://editorial_core:8080
-      MOCK_MODE: "false"
+      CORE_API_URL: http://10.20.30.10:8080
       TERMINAL_AREA: PRODUCTION
     depends_on:
       - editorial_core
     stdin_open: true
     tty: true
     networks:
-      red_produccion:
-        ipv4_address: 10.20.220.10
+      red_produccion: {}
       red_apps: {}
 
   tui_reclutamiento:
@@ -113,16 +110,14 @@ services:
       context: ../services/editorial_tui
       dockerfile: Dockerfile
     environment:
-      CORE_API_URL: http://editorial_core:8080
-      MOCK_MODE: "false"
+      CORE_API_URL: http://10.20.30.10:8080
       TERMINAL_AREA: RECRUITMENT
     depends_on:
       - editorial_core
     stdin_open: true
     tty: true
     networks:
-      red_reclutamiento:
-        ipv4_address: 10.20.230.10
+      red_reclutamiento: {}
       red_apps: {}
 
   tui_rrhh:
@@ -130,16 +125,14 @@ services:
       context: ../services/editorial_tui
       dockerfile: Dockerfile
     environment:
-      CORE_API_URL: http://editorial_core:8080
-      MOCK_MODE: "false"
+      CORE_API_URL: http://10.20.30.10:8080
       TERMINAL_AREA: HR
     depends_on:
       - editorial_core
     stdin_open: true
     tty: true
     networks:
-      red_rrhh:
-        ipv4_address: 10.20.240.10
+      red_rrhh: {}
       red_apps: {}
 
   tui_eventos:
@@ -147,14 +140,12 @@ services:
       context: ../services/editorial_tui
       dockerfile: Dockerfile
     environment:
-      CORE_API_URL: http://editorial_core:8080
-      MOCK_MODE: "false"
+      CORE_API_URL: http://10.20.30.10:8080
       TERMINAL_AREA: MARKETING
     depends_on:
       - editorial_core
     stdin_open: true
     tty: true
     networks:
-      red_eventos:
-        ipv4_address: 10.20.250.10
+      red_eventos: {}
       red_apps: {}
