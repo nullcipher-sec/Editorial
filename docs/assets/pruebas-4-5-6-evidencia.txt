@@ -1,0 +1,19 @@
+# Evidencia pruebas 4, 5 y 6 — 2026-11-16T03:26:16Z — stack docker-compose.dev.yml
+## Prueba 4: area distinta -> 403
+sin token  GET /api/internal/hr/employees        -> 401
+atencion   GET /api/internal/attention/clients   -> 200
+atencion   GET /api/internal/hr/employees        -> 403
+## Prueba 5: articulo no publico
+articulos DB:
+                     title                      |  status   
+------------------------------------------------+-----------
+ Sultana del Lago inaugura nueva sala de prensa | PUBLISHED
+ Convocatoria abierta: reporteros de campo      | PUBLISHED
+ Borrador interno — no publicar                 | DRAFT
+(3 rows)
+
+GET /api/public/articles titulos: ['Convocatoria abierta: reporteros de campo', 'Sultana del Lago inaugura nueva sala de prensa']
+GET /api/public/articles/<id DRAFT> -> 404
+## Prueba 6: login LDAP con contrasena incorrecta
+POST /api/auth/login (clave mala)   -> 401
+POST /api/auth/login (clave buena)  -> 200
