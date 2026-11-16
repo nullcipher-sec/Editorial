@@ -117,19 +117,68 @@ deben validarse en la infraestructura correspondiente.
 Las terminales TUI no contienen datos en memoria ni perfiles de prueba. El acceso siempre se valida
 contra el Core y `CORE_API_URL` debe apuntar al servicio accesible desde la red del área.
 
-## Arranque con un solo comando
+## Cómo levantar el proyecto
+
+**Requisitos:** Docker con Docker Compose v2. Puertos libres: 8080 (Core), 3000 (noticiero) y 5432 (PostgreSQL).
+No hace falta crear ningún `.env`: se usan valores de desarrollo.
+
+### 1. Levantar todo (un solo comando)
 
 ```bash
-docker compose up -d --build     # Postgres + LDAP + Core + noticiero
+git clone https://github.com/nullcipher-sec/Editorial.git && cd Editorial
+docker compose up -d --build
 ```
 
-- API del Core y documentación: http://localhost:8080 (`/scalar`)
-- Noticiero web: http://localhost:3000
-- Terminales TUI (interactivas): `docker compose run --rm tui_atencion` (también `tui_produccion`,
-  `tui_rrhh`, `tui_reclutamiento`, `tui_eventos`)
-- Apagar: `docker compose down` (con `-v` borra los datos de desarrollo)
+Esto construye y arranca PostgreSQL (con esquema y datos de ejemplo), LDAP (usuarios de prueba), el Core y el
+noticiero. La primera vez tarda unos minutos en construir; el Core puede tardar hasta ~1 min en responder.
 
-El Core tarda hasta ~1 min en responder la primera vez. No requiere `.env`: usa valores de desarrollo.
+| Servicio | URL |
+|---|---|
+| API del Core | http://localhost:8080 (documentación en `/scalar`, salud en `/actuator/health`) |
+| Noticiero web | http://localhost:3000 |
+| PostgreSQL | `localhost:5432` |
+
+Comprobar que está listo: `curl http://localhost:8080/actuator/health` debe devolver `{"status":"UP"}`.
+
+### 2. Abrir una terminal TUI (interactivas, una por área)
+
+```bash
+docker compose run --rm tui_atencion        # Atención al cliente
+docker compose run --rm tui_produccion      # Producción / contenido
+docker compose run --rm tui_rrhh            # Recursos Humanos
+docker compose run --rm tui_reclutamiento   # Reclutamiento
+docker compose run --rm tui_eventos         # Marketing / eventos
+```
+
+Inicia sesión con el usuario del área. Contraseña de todos: `EditorialDev!2026`.
+
+| Área | Usuario |
+|---|---|
+| Atención | `atencion.agente` |
+| Producción | `prod.editor` |
+| RRHH | `rrhh.gerente` |
+| Reclutamiento | `recluta.especialista` |
+| Marketing / eventos | `marketing.coord` |
+
+Teclas: `Tab` cambia de campo, `Enter` acepta, `Esc` vuelve, `Q` sale.
+
+### 3. Apagar
+
+```bash
+docker compose down        # detiene y elimina contenedores y redes
+docker compose down -v     # además borra los datos (reinicio limpio)
+```
+
+### Problemas frecuentes
+
+| Síntoma | Solución |
+|---|---|
+| Puerto 8080, 3000 o 5432 ocupado | Detén el otro servicio o cambia `CORE_PORT`, `NOTICIERO_PORT` o `POSTGRES_PORT` |
+| Login da 401 con el usuario correcto | Datos antiguos de LDAP: `docker compose down -v` y vuelve a levantar |
+| El noticiero responde 502 | El Core aún arranca; espera y recarga |
+| Ver logs | `docker compose logs -f editorial_core` |
+
+Más detalle de pruebas manuales del API, 401/403 y resolución de problemas: `docs/guia-despliegue-pruebas.md`.
 
 ## Arranque rápido (desarrollo)
 
