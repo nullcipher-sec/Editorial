@@ -2,12 +2,13 @@
 
 Backend (Core) de Sultana del Lago Editores: API interna para las TUI y API pública para el noticiero.
 
-## Fase 1 (desbloqueo del equipo)
+## Alcance
 
 - Esquema PostgreSQL en `deploy/db_init/db.sql`
 - Contrato HTTP estable (`docs/api/openapi.yaml`, Scalar en perfil `dev`)
 - `GET /api/public/articles` operativo (solo `PUBLISHED`)
-- Rutas internas con **lectura** (`GET`) y mutaciones respondiendo `501` hasta LDAP/JWT
+- Login LDAP + JWT en `POST /api/auth/login`
+- Rutas `/api/internal/**` protegidas por rol (`ROLE_<AREA>`): 401 sin token, 403 con rol equivocado
 
 ## Desarrollo local
 

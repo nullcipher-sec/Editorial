@@ -1,9 +1,9 @@
 openapi: 3.0.3
 info:
   title: Sultana del Lago Editores — Core API
-  version: 0.1.0-phase1
+  version: 1.0.0
   description: |
-    Contrato estable para integración del equipo. Mutaciones internas devuelven 501 hasta auth LDAP/JWT.
+    Contrato del Core. Las rutas /api/internal/** exigen JWT (Bearer) obtenido en /api/auth/login y el rol ROLE_<AREA> correspondiente; sin token responden 401 y con rol equivocado 403.
 
 servers:
   - url: http://localhost:8080
@@ -13,12 +13,42 @@ servers:
 
 tags:
   - name: Public
+  - name: Auth
   - name: Internal
 
+security:
+  - bearerAuth: []
+
 paths:
+  /api/auth/login:
+    post:
+      tags: [Auth]
+      summary: Login against LDAP, returns JWT
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [username, password]
+              properties:
+                username:
+                  type: string
+                password:
+                  type: string
+      responses:
+        '200':
+          description: JWT issued
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
   /api/public/articles:
     get:
       tags: [Public]
+      security: []
       summary: List published articles (noticiero)
       parameters:
         - $ref: '#/components/parameters/Page'
@@ -34,6 +64,7 @@ paths:
   /api/public/articles/{id}:
     get:
       tags: [Public]
+      security: []
       summary: Get one published article
       parameters:
         - $ref: '#/components/parameters/ArticleId'
@@ -58,10 +89,16 @@ paths:
           description: OK
     post:
       tags: [Internal]
-      summary: Create client (501 phase 1)
+      summary: Create client
       responses:
-        '501':
-          $ref: '#/components/responses/NotImplemented'
+        '200':
+          description: OK
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
 
   /api/internal/attention/cases:
     get:
@@ -76,8 +113,14 @@ paths:
     post:
       tags: [Internal]
       responses:
-        '501':
-          $ref: '#/components/responses/NotImplemented'
+        '200':
+          description: OK
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
 
   /api/internal/content/articles:
     get:
@@ -92,8 +135,14 @@ paths:
     post:
       tags: [Internal]
       responses:
-        '501':
-          $ref: '#/components/responses/NotImplemented'
+        '200':
+          description: OK
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
 
   /api/internal/content/articles/{id}/publish:
     patch:
@@ -102,20 +151,49 @@ paths:
       parameters:
         - $ref: '#/components/parameters/ArticleId'
       responses:
-        '501':
-          $ref: '#/components/responses/NotImplemented'
+        '200':
+          description: OK
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
 
   /api/internal/hr/employees:
     get:
       tags: [Internal]
+      summary: List employees (HR)
       responses:
         '200':
           description: OK
     post:
       tags: [Internal]
+      summary: Create employee (HR)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [employeeCode, fullName, email, department]
+              properties:
+                employeeCode: {type: string, maxLength: 32}
+                fullName: {type: string}
+                email: {type: string, format: email}
+                department: {type: string, enum: [ATTENTION, PRODUCTION, RECRUITMENT, HR, MARKETING]}
+                hiredAt: {type: string, format: date}
       responses:
-        '501':
-          $ref: '#/components/responses/NotImplemented'
+        '200':
+          description: Employee created
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '409':
+          description: employeeCode already exists
 
   /api/internal/hr/job-openings:
     get:
@@ -126,8 +204,14 @@ paths:
     post:
       tags: [Internal]
       responses:
-        '501':
-          $ref: '#/components/responses/NotImplemented'
+        '200':
+          description: OK
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
 
   /api/internal/recruitment/candidates:
     get:
@@ -138,8 +222,14 @@ paths:
     post:
       tags: [Internal]
       responses:
-        '501':
-          $ref: '#/components/responses/NotImplemented'
+        '200':
+          description: OK
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
 
   /api/internal/events:
     get:
@@ -150,8 +240,14 @@ paths:
     post:
       tags: [Internal]
       responses:
-        '501':
-          $ref: '#/components/responses/NotImplemented'
+        '200':
+          description: OK
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
 
   /api/internal/marketing/campaigns:
     get:
@@ -162,10 +258,21 @@ paths:
     post:
       tags: [Internal]
       responses:
-        '501':
-          $ref: '#/components/responses/NotImplemented'
+        '200':
+          description: OK
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
 
 components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
   parameters:
     Page:
       name: page
@@ -194,8 +301,20 @@ components:
         application/json:
           schema:
             $ref: '#/components/schemas/ErrorBody'
-    NotImplemented:
-      description: Mutation not available in phase 1
+    BadRequest:
+      description: Invalid request
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorBody'
+    Unauthorized:
+      description: Authentication required
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorBody'
+    Forbidden:
+      description: Access denied (role does not match area)
       content:
         application/json:
           schema:

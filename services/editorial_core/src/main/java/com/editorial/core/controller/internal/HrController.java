@@ -2,6 +2,8 @@ package com.editorial.core.controller.internal;
 
 import com.editorial.core.entity.Employee;
 import com.editorial.core.entity.JobOpening;
+import com.editorial.core.exception.ControllerException;
+import com.editorial.core.model.request.CreateEmployeeRequest;
 import com.editorial.core.model.request.CreateJobOpeningRequest;
 import com.editorial.core.model.response.EmployeeResponse;
 import com.editorial.core.model.response.JobOpeningResponse;
@@ -39,8 +41,8 @@ public class HrController {
     }
 
     @PostMapping("/employees")
-    public void createEmployee(@RequestBody Object body) {
-        // Reservado: alta de empleados en fase posterior (validación extendida).
+    public EmployeeResponse createEmployee(@Valid @RequestBody CreateEmployeeRequest body) throws ControllerException {
+        return hrService.createEmployee(body);
     }
 
     @GetMapping("/job-openings")

@@ -83,6 +83,19 @@ Las terminales con `MOCK_MODE=true` usan datos en memoria y perfiles de prueba. 
 JWT, PostgreSQL ni la conectividad real entre VLAN. Para una integración real deben ejecutarse con
 `MOCK_MODE=false` y `CORE_API_URL` apuntando al Core accesible desde la red del área.
 
+## Arranque rápido (desarrollo)
+
+```bash
+cd deploy
+cp .env.dev.example .env          # valores de desarrollo listos para usar
+docker compose -f docker-compose.dev.yml up -d --build   # postgres, ldap, core y 5 TUI
+curl -s http://localhost:8080/actuator/health            # {"status":"UP"}
+```
+
+Scalar en `http://localhost:8080/scalar`. Usuarios, pruebas de 401/403 y resolución de problemas:
+`docs/guia-despliegue-pruebas.md`. La topología completa con firewall, TLS y relevo se levanta con
+`deploy/docker-compose.yml` (ver `deploy/`).
+
 ## Flujo de trabajo
 
 Cada integrante trabaja en su propia rama y nadie hace push directo a `main`.
