@@ -22,6 +22,9 @@ public final class ErrorResponses {
     public static final ErrorResponse NOT_FOUND = new ErrorResponse(HttpStatus.NOT_FOUND,
             "Resource not found");
 
+    public static final ErrorResponse CONFLICT = new ErrorResponse(HttpStatus.CONFLICT,
+            "Resource already exists");
+
     public static final ErrorResponse NOT_IMPLEMENTED = new ErrorResponse(HttpStatus.NOT_IMPLEMENTED,
             "Endpoint not implemented yet");
 
