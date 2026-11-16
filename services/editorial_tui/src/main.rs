@@ -1,3 +1,6 @@
+// Colapsar estos `if` en guards de `match` no compila: `check_area_access` toma `&mut app`.
+#![allow(clippy::collapsible_match)]
+
 pub mod api;
 pub mod app;
 pub mod auth;

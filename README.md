@@ -131,7 +131,7 @@ contra el Core y `CORE_API_URL` debe apuntar al servicio accesible desde la red 
 
 El primer comando crea `deploy/.env` automáticamente desde `deploy/.env.dev.example` si todavía
 no existe. Cada comando `tui_*` reutiliza los servicios ya levantados, construye solo la imagen
-Scalar en `http://localhost:8080/scalar`. Usuarios, pruebas de 401/403 y resolución de problemas:
+de la TUI pedida y la abre. La documentación del API (Scalar) está en `http://localhost:8080/scalar`. Usuarios, pruebas de 401/403 y resolución de problemas:
 `docs/guia-despliegue-pruebas.md`. La topología completa con firewall, TLS y relevo se levanta con
 `deploy/docker-compose.yml` (ver `deploy/`).
 
