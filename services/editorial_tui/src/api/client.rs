@@ -288,8 +288,12 @@ impl EditorialApi for HttpApiClient {
     }
 
     async fn get_article(&self, id: Uuid) -> Result<Article, ApiError> {
-        let url = format!("{}/api/public/articles/{}", self.base_url, id);
-        match self.client.get(&url).send().await {
+        let url = format!("{}/api/internal/content/articles/{}", self.base_url, id);
+        let mut req = self.client.get(&url);
+        if let Some(h) = self.auth_header().await {
+            req = req.header(header::AUTHORIZATION, h);
+        }
+        match req.send().await {
             Ok(resp) => {
                 let status = resp.status();
                 if status.is_success() {
@@ -345,7 +349,10 @@ impl EditorialApi for HttpApiClient {
                 self.base_url, id
             )
         } else {
-            format!("{}/api/internal/content/articles/{}", self.base_url, id)
+            format!(
+                "{}/api/internal/content/articles/{}/review",
+                self.base_url, id
+            )
         };
 
         let mut req = self.client.patch(&url);

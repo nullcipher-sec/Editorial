@@ -63,7 +63,6 @@ pub fn render_menu(frame: &mut Frame, area: Rect, app: &App) {
             true
         } else if let Some(area) = user_area {
             (*required_area == AreaCode::Hr && area == AreaCode::Recruitment)
-                || (*required_area == AreaCode::Marketing && area == AreaCode::Production)
                 || (area == *required_area)
         } else {
             false

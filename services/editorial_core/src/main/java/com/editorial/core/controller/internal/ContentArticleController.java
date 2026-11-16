@@ -35,7 +35,7 @@ public class ContentArticleController {
     private final ContentArticleService contentArticleService;
 
     @GetMapping
-    public PageResponse<ArticleSummaryResponse> list(@PageableDefault(size = 20) Pageable pageable) {
+    public PageResponse<ArticleSummaryResponse> list(@PageableDefault(size = 20, sort = {"createdAt", "id"}) Pageable pageable) {
         var page = articleRepository.findAll(pageable);
         return PageResponse.from(page, page.map(this::toSummary).getContent());
     }
@@ -45,8 +45,18 @@ public class ContentArticleController {
         return contentArticleService.create(body);
     }
 
+    @GetMapping("/{id}")
+    public ArticleResponse get(@PathVariable UUID id) throws ControllerException {
+        return contentArticleService.get(id);
+    }
+
+    @PatchMapping("/{id}/review")
+    public ArticleResponse sendToReview(@PathVariable UUID id) throws ControllerException {
+        return contentArticleService.sendToReview(id);
+    }
+
     @PatchMapping("/{id}/publish")
-    public ArticleSummaryResponse publish(@PathVariable UUID id) throws ControllerException {
+    public ArticleResponse publish(@PathVariable UUID id) throws ControllerException {
         return contentArticleService.publish(id);
     }
 

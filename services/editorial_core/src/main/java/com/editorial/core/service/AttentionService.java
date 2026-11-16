@@ -7,6 +7,7 @@ import com.editorial.core.exception.ControllerException;
 import com.editorial.core.exception.ErrorResponses;
 import com.editorial.core.model.request.CreateCaseRequest;
 import com.editorial.core.model.request.CreateClientRequest;
+import com.editorial.core.model.request.UpdateCaseStatusRequest;
 import com.editorial.core.model.response.ClientResponse;
 import com.editorial.core.model.response.SupportCaseResponse;
 import com.editorial.core.repository.ClientRepository;
@@ -53,6 +54,15 @@ public class AttentionService {
         supportCase.setAssignedTo(assignee);
         supportCase.setCreatedAt(now);
         supportCase.setUpdatedAt(now);
+        return toCaseResponse(supportCaseRepository.save(supportCase));
+    }
+
+    @Transactional
+    public SupportCaseResponse updateCaseStatus(UUID id, UpdateCaseStatusRequest request) throws ControllerException {
+        SupportCase supportCase = supportCaseRepository.findById(id)
+                .orElseThrow(() -> new ControllerException(ErrorResponses.NOT_FOUND));
+        supportCase.setStatus(request.getStatus());
+        supportCase.setUpdatedAt(Instant.now());
         return toCaseResponse(supportCaseRepository.save(supportCase));
     }
 

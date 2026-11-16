@@ -195,8 +195,7 @@ async fn handle_menu_keys(app: &mut App, code: KeyCode) {
             }
             3 => {
                 let user_area = app.session.as_ref().map(|s| s.user.area);
-                if user_area == Some(AreaCode::Marketing) || user_area == Some(AreaCode::Production)
-                {
+                if user_area == Some(AreaCode::Marketing) {
                     app.current_screen = CurrentScreen::Events;
                     app.sub_view = SubView::List1;
                     app.list_index = 0;

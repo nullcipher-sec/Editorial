@@ -6,7 +6,6 @@ import com.editorial.core.exception.ControllerException;
 import com.editorial.core.exception.ErrorResponses;
 import com.editorial.core.model.request.CreateArticleRequest;
 import com.editorial.core.model.response.ArticleResponse;
-import com.editorial.core.model.response.ArticleSummaryResponse;
 import com.editorial.core.repository.ArticleRepository;
 import com.editorial.core.security.SecurityPrincipalService;
 import lombok.RequiredArgsConstructor;
@@ -39,21 +38,33 @@ public class ContentArticleService {
         return toResponse(articleRepository.save(article));
     }
 
+    @Transactional(readOnly = true)
+    public ArticleResponse get(UUID id) throws ControllerException {
+        return toResponse(articleRepository.findById(id)
+                .orElseThrow(() -> new ControllerException(ErrorResponses.NOT_FOUND)));
+    }
+
     @Transactional
-    public ArticleSummaryResponse publish(UUID id) throws ControllerException {
+    public ArticleResponse sendToReview(UUID id) throws ControllerException {
+        Article article = articleRepository.findById(id)
+                .orElseThrow(() -> new ControllerException(ErrorResponses.NOT_FOUND));
+        if (article.getStatus() != ArticleStatus.DRAFT) {
+            throw new ControllerException(ErrorResponses.CONFLICT);
+        }
+        article.setStatus(ArticleStatus.REVIEW);
+        article.setUpdatedAt(Instant.now());
+        return toResponse(articleRepository.save(article));
+    }
+
+    @Transactional
+    public ArticleResponse publish(UUID id) throws ControllerException {
         Article article = articleRepository.findById(id)
                 .orElseThrow(() -> new ControllerException(ErrorResponses.NOT_FOUND));
         Instant now = Instant.now();
         article.setStatus(ArticleStatus.PUBLISHED);
         article.setPublishedAt(now);
         article.setUpdatedAt(now);
-        articleRepository.save(article);
-        return new ArticleSummaryResponse(
-                article.getId(),
-                article.getTitle(),
-                article.getStatus().name(),
-                article.getPublishedAt()
-        );
+        return toResponse(articleRepository.save(article));
     }
 
     static ArticleResponse toResponse(Article article) {
