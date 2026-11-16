@@ -1,0 +1,39 @@
+\documentclass[12pt,a4paper]{report}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[spanish]{babel}
+\usepackage{graphicx}
+\usepackage{hyperref}
+\usepackage{listings}
+\usepackage{booktabs}
+\graphicspath{{../assets/}{../diagrams/}}
+
+\title{Sultana del Lago Editores\\Diseño e implementación de infraestructura segura\\\large Proyecto 2 --- Seguridad Informática}
+\author{@marcelopcx \and @arrias24 \and @luiscab19 \and @JhonmarMorales17}
+\date{\today}
+
+\begin{document}
+\begin{titlepage}
+  \centering
+  \includegraphics[width=0.3\textwidth]{logo-sultana-del-lago.jpg}\par\vspace{2cm}
+  {\Huge\bfseries Sultana del Lago Editores\par}
+  \vspace{1cm}
+  {\Large Diseño e implementación de infraestructura segura\par}
+  \vspace{1cm}
+  {\large Proyecto 2 --- Seguridad Informática\par}
+  \vfill
+  {\large @marcelopcx, @arrias24, @luiscab19, @JhonmarMorales17\par}
+  \vspace{0.5cm}\today
+\end{titlepage}
+
+\tableofcontents
+\chapter{Introducción}
+Cliente, alcance y objetivos del proyecto.
+
+\include{capitulos/01-infraestructura-red}
+\include{capitulos/02-equipos}
+\include{capitulos/03-sistemas}
+\include{capitulos/04-seguridad-logica}
+\include{capitulos/05-pruebas}
+\chapter{Conclusiones}
+\end{document}
