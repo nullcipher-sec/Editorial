@@ -1,4 +1,4 @@
-use crate::api::{ApiBackend, ApiError, EditorialApi, HttpApiClient, MockApiClient};
+use crate::api::{ApiBackend, ApiError, EditorialApi, HttpApiClient};
 use crate::auth::Session;
 use crate::config::AppConfig;
 use crate::domain::*;
@@ -54,11 +54,7 @@ pub struct App {
 
 impl App {
     pub fn new(config: AppConfig) -> Self {
-        let api = if config.mock_mode {
-            ApiBackend::Mock(MockApiClient::new())
-        } else {
-            ApiBackend::Http(HttpApiClient::new(config.core_api_url.clone()))
-        };
+        let api = ApiBackend::Http(HttpApiClient::new(config.core_api_url.clone()));
 
         Self {
             config,
@@ -110,7 +106,10 @@ impl App {
         self.current_screen = CurrentScreen::Login;
         self.sub_view = SubView::List1;
         self.clear_inputs();
-        self.set_popup(PopupKind::Info, "Sesión cerrada de forma segura. Credenciales eliminadas de memoria.".to_string());
+        self.set_popup(
+            PopupKind::Info,
+            "Sesión cerrada de forma segura. Credenciales eliminadas de memoria.".to_string(),
+        );
     }
 
     pub async fn refresh_data(&mut self) {
@@ -164,7 +163,10 @@ impl App {
                 false
             }
         } else {
-            self.set_popup(PopupKind::Error, "Debe iniciar sesión primero (401).".to_string());
+            self.set_popup(
+                PopupKind::Error,
+                "Debe iniciar sesión primero (401).".to_string(),
+            );
             false
         }
     }
@@ -172,14 +174,23 @@ impl App {
     pub fn handle_api_error(&mut self, err: ApiError) {
         match err {
             ApiError::Unauthorized => {
-                self.set_popup(PopupKind::Error, "Sesión expirada o no autorizada (401).".to_string());
+                self.set_popup(
+                    PopupKind::Error,
+                    "Sesión expirada o no autorizada (401).".to_string(),
+                );
                 self.current_screen = CurrentScreen::Login;
             }
             ApiError::Forbidden => {
-                self.set_popup(PopupKind::Error, "Permiso denegado (403): Su rol no permite esta operación.".to_string());
+                self.set_popup(
+                    PopupKind::Error,
+                    "Permiso denegado (403): Su rol no permite esta operación.".to_string(),
+                );
             }
             ApiError::NotFound => {
-                self.set_popup(PopupKind::Warning, "El recurso solicitado no fue encontrado (404).".to_string());
+                self.set_popup(
+                    PopupKind::Warning,
+                    "El recurso solicitado no fue encontrado (404).".to_string(),
+                );
             }
             ApiError::NotImplemented(msg) => {
                 self.set_popup(PopupKind::Info, format!("Fase 1: {}", msg));
@@ -191,7 +202,10 @@ impl App {
                 self.set_popup(PopupKind::Error, format!("Error de conexión: {}", msg));
             }
             ApiError::Serialization(msg) => {
-                self.set_popup(PopupKind::Error, format!("Error de formato de datos: {}", msg));
+                self.set_popup(
+                    PopupKind::Error,
+                    format!("Error de formato de datos: {}", msg),
+                );
             }
         }
     }

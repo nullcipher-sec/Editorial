@@ -1,3 +1,6 @@
+// Colapsar estos `if` en guards de `match` no compila: `check_area_access` toma `&mut app`.
+#![allow(clippy::collapsible_match)]
+
 pub mod api;
 pub mod app;
 pub mod auth;
@@ -35,7 +38,11 @@ async fn main() -> Result<()> {
     let res = run_app_loop(&mut terminal, &mut app).await;
 
     disable_raw_mode()?;
-    execute!(terminal.backend_mut(), LeaveAlternateScreen, DisableMouseCapture)?;
+    execute!(
+        terminal.backend_mut(),
+        LeaveAlternateScreen,
+        DisableMouseCapture
+    )?;
     terminal.show_cursor()?;
 
     if let Err(err) = res {
@@ -98,18 +105,6 @@ async fn handle_key_press(app: &mut App, code: KeyCode) {
 
 async fn handle_login_keys(app: &mut App, code: KeyCode) {
     match code {
-        KeyCode::Char('1') if app.input_1.is_empty() => {
-            login_quick(app, "atencion.agente").await;
-        }
-        KeyCode::Char('2') if app.input_1.is_empty() => {
-            login_quick(app, "prod.editor").await;
-        }
-        KeyCode::Char('3') if app.input_1.is_empty() => {
-            login_quick(app, "rrhh.gerente").await;
-        }
-        KeyCode::Char('4') if app.input_1.is_empty() => {
-            login_quick(app, "recluta.especialista").await;
-        }
         KeyCode::Tab => {
             app.active_field = (app.active_field + 1) % 2;
         }
@@ -136,27 +131,21 @@ async fn handle_login_keys(app: &mut App, code: KeyCode) {
                         app.session = Some(session);
                         app.current_screen = CurrentScreen::MainMenu;
                         app.clear_inputs();
-                        app.set_popup(PopupKind::Success, "Autenticación exitosa. Bienvenido al sistema.".to_string());
+                        app.set_popup(
+                            PopupKind::Success,
+                            "Autenticación exitosa. Bienvenido al sistema.".to_string(),
+                        );
                     }
                     Err(e) => app.handle_api_error(e),
                 }
             } else {
-                app.set_popup(PopupKind::Warning, "Ingrese el nombre de usuario o use [1-4].".to_string());
+                app.set_popup(
+                    PopupKind::Warning,
+                    "Ingrese el nombre de usuario.".to_string(),
+                );
             }
         }
         _ => {}
-    }
-}
-
-async fn login_quick(app: &mut App, username: &str) {
-    match app.api.login(username, "EditorialDev!2026").await {
-        Ok(session) => {
-            app.session = Some(session);
-            app.current_screen = CurrentScreen::MainMenu;
-            app.clear_inputs();
-            app.set_popup(PopupKind::Success, format!("Sesión iniciada como perfil: {}", username));
-        }
-        Err(e) => app.handle_api_error(e),
     }
 }
 
@@ -206,7 +195,8 @@ async fn handle_menu_keys(app: &mut App, code: KeyCode) {
             }
             3 => {
                 let user_area = app.session.as_ref().map(|s| s.user.area);
-                if user_area == Some(AreaCode::Marketing) || user_area == Some(AreaCode::Production) {
+                if user_area == Some(AreaCode::Marketing) || user_area == Some(AreaCode::Production)
+                {
                     app.current_screen = CurrentScreen::Events;
                     app.sub_view = SubView::List1;
                     app.list_index = 0;
@@ -301,19 +291,36 @@ async fn handle_attention_keys(app: &mut App, code: KeyCode) {
                 _ => app.input_3.push(c),
             },
             KeyCode::Backspace => match app.active_field {
-                0 => { app.input_1.pop(); }
-                1 => { app.input_2.pop(); }
-                _ => { app.input_3.pop(); }
+                0 => {
+                    app.input_1.pop();
+                }
+                1 => {
+                    app.input_2.pop();
+                }
+                _ => {
+                    app.input_3.pop();
+                }
             },
             KeyCode::Enter => {
                 let input = CreateClientInput {
                     full_name: app.input_1.clone(),
-                    email: if app.input_2.is_empty() { None } else { Some(app.input_2.clone()) },
-                    phone: if app.input_3.is_empty() { None } else { Some(app.input_3.clone()) },
+                    email: if app.input_2.is_empty() {
+                        None
+                    } else {
+                        Some(app.input_2.clone())
+                    },
+                    phone: if app.input_3.is_empty() {
+                        None
+                    } else {
+                        Some(app.input_3.clone())
+                    },
                 };
                 match app.api.create_client(input).await {
                     Ok(cl) => {
-                        app.set_popup(PopupKind::Success, format!("Cliente '{}' registrado.", cl.full_name));
+                        app.set_popup(
+                            PopupKind::Success,
+                            format!("Cliente '{}' registrado.", cl.full_name),
+                        );
                         app.sub_view = SubView::List2;
                         app.clear_inputs();
                         app.refresh_data().await;
@@ -336,23 +343,32 @@ async fn handle_attention_keys(app: &mut App, code: KeyCode) {
                 _ => app.input_2.push(c),
             },
             KeyCode::Backspace => match app.active_field {
-                0 => { app.input_1.pop(); }
-                _ => { app.input_2.pop(); }
+                0 => {
+                    app.input_1.pop();
+                }
+                _ => {
+                    app.input_2.pop();
+                }
             },
             KeyCode::Enter => {
-                let client_id = if !app.clients.is_empty() {
-                    app.clients[0].id
-                } else {
-                    uuid::Uuid::new_v4()
+                let Some(client) = app.clients.first() else {
+                    app.set_popup(
+                        PopupKind::Warning,
+                        "No hay clientes cargados para asociar el caso.".to_string(),
+                    );
+                    return;
                 };
                 let input = CreateCaseInput {
-                    client_id,
+                    client_id: client.id,
                     subject: app.input_1.clone(),
                     description: app.input_2.clone(),
                 };
                 match app.api.create_case(input).await {
                     Ok(cs) => {
-                        app.set_popup(PopupKind::Success, format!("Caso '{}' creado exitosamente.", cs.subject));
+                        app.set_popup(
+                            PopupKind::Success,
+                            format!("Caso '{}' creado exitosamente.", cs.subject),
+                        );
                         app.sub_view = SubView::List1;
                         app.clear_inputs();
                         app.refresh_data().await;
@@ -402,9 +418,16 @@ async fn handle_content_keys(app: &mut App, code: KeyCode) {
             KeyCode::Char('r') | KeyCode::Char('R') => {
                 if !app.articles.is_empty() && app.list_index < app.articles.len() {
                     let article_id = app.articles[app.list_index].id;
-                    match app.api.update_article_status(article_id, ArticleStatus::Review).await {
+                    match app
+                        .api
+                        .update_article_status(article_id, ArticleStatus::Review)
+                        .await
+                    {
                         Ok(_) => {
-                            app.set_popup(PopupKind::Success, "Artículo enviado a Revisión Editorial.".to_string());
+                            app.set_popup(
+                                PopupKind::Success,
+                                "Artículo enviado a Revisión Editorial.".to_string(),
+                            );
                             app.refresh_data().await;
                         }
                         Err(e) => app.handle_api_error(e),
@@ -414,9 +437,16 @@ async fn handle_content_keys(app: &mut App, code: KeyCode) {
             KeyCode::Char('p') | KeyCode::Char('P') => {
                 if !app.articles.is_empty() && app.list_index < app.articles.len() {
                     let article_id = app.articles[app.list_index].id;
-                    match app.api.update_article_status(article_id, ArticleStatus::Published).await {
+                    match app
+                        .api
+                        .update_article_status(article_id, ArticleStatus::Published)
+                        .await
+                    {
                         Ok(_) => {
-                            app.set_popup(PopupKind::Success, "Artículo publicado exitosamente al Noticiero web.".to_string());
+                            app.set_popup(
+                                PopupKind::Success,
+                                "Artículo publicado exitosamente al Noticiero web.".to_string(),
+                            );
                             app.refresh_data().await;
                         }
                         Err(e) => app.handle_api_error(e),
@@ -443,19 +473,32 @@ async fn handle_content_keys(app: &mut App, code: KeyCode) {
                 _ => app.input_3.push(c),
             },
             KeyCode::Backspace => match app.active_field {
-                0 => { app.input_1.pop(); }
-                1 => { app.input_2.pop(); }
-                _ => { app.input_3.pop(); }
+                0 => {
+                    app.input_1.pop();
+                }
+                1 => {
+                    app.input_2.pop();
+                }
+                _ => {
+                    app.input_3.pop();
+                }
             },
             KeyCode::Enter => {
                 let input = CreateArticleInput {
                     title: app.input_1.clone(),
-                    summary: if app.input_2.is_empty() { None } else { Some(app.input_2.clone()) },
+                    summary: if app.input_2.is_empty() {
+                        None
+                    } else {
+                        Some(app.input_2.clone())
+                    },
                     body: app.input_3.clone(),
                 };
                 match app.api.create_article(input).await {
                     Ok(art) => {
-                        app.set_popup(PopupKind::Success, format!("Artículo '{}' redactado en Borrador.", art.title));
+                        app.set_popup(
+                            PopupKind::Success,
+                            format!("Artículo '{}' redactado en Borrador.", art.title),
+                        );
                         app.sub_view = SubView::List1;
                         app.clear_inputs();
                         app.refresh_data().await;
@@ -477,7 +520,9 @@ async fn handle_hr_keys(app: &mut App, code: KeyCode) {
     match app.sub_view {
         SubView::List1 => match code {
             KeyCode::Up => {
-                if app.list_index > 0 { app.list_index -= 1; }
+                if app.list_index > 0 {
+                    app.list_index -= 1;
+                }
             }
             KeyCode::Down => {
                 if !app.employees.is_empty() && app.list_index < app.employees.len() - 1 {
@@ -501,7 +546,9 @@ async fn handle_hr_keys(app: &mut App, code: KeyCode) {
         },
         SubView::List2 => match code {
             KeyCode::Up => {
-                if app.list_index > 0 { app.list_index -= 1; }
+                if app.list_index > 0 {
+                    app.list_index -= 1;
+                }
             }
             KeyCode::Down => {
                 if !app.openings.is_empty() && app.list_index < app.openings.len() - 1 {
@@ -520,7 +567,9 @@ async fn handle_hr_keys(app: &mut App, code: KeyCode) {
         },
         SubView::List3 => match code {
             KeyCode::Up => {
-                if app.list_index > 0 { app.list_index -= 1; }
+                if app.list_index > 0 {
+                    app.list_index -= 1;
+                }
             }
             KeyCode::Down => {
                 if !app.candidates.is_empty() && app.list_index < app.candidates.len() - 1 {
@@ -546,8 +595,12 @@ async fn handle_hr_keys(app: &mut App, code: KeyCode) {
                 _ => app.input_2.push(c),
             },
             KeyCode::Backspace => match app.active_field {
-                0 => { app.input_1.pop(); }
-                _ => { app.input_2.pop(); }
+                0 => {
+                    app.input_1.pop();
+                }
+                _ => {
+                    app.input_2.pop();
+                }
             },
             KeyCode::Enter => {
                 let input = CreateJobOpeningInput {
@@ -557,7 +610,10 @@ async fn handle_hr_keys(app: &mut App, code: KeyCode) {
                 };
                 match app.api.create_job_opening(input).await {
                     Ok(jo) => {
-                        app.set_popup(PopupKind::Success, format!("Vacante '{}' publicada.", jo.title));
+                        app.set_popup(
+                            PopupKind::Success,
+                            format!("Vacante '{}' publicada.", jo.title),
+                        );
                         app.sub_view = SubView::List2;
                         app.clear_inputs();
                         app.refresh_data().await;
@@ -580,24 +636,33 @@ async fn handle_hr_keys(app: &mut App, code: KeyCode) {
                 _ => app.input_2.push(c),
             },
             KeyCode::Backspace => match app.active_field {
-                0 => { app.input_1.pop(); }
-                _ => { app.input_2.pop(); }
+                0 => {
+                    app.input_1.pop();
+                }
+                _ => {
+                    app.input_2.pop();
+                }
             },
             KeyCode::Enter => {
-                let opening_id = if !app.openings.is_empty() {
-                    app.openings[0].id
-                } else {
-                    uuid::Uuid::new_v4()
+                let Some(opening) = app.openings.first() else {
+                    app.set_popup(
+                        PopupKind::Warning,
+                        "No hay vacantes cargadas para asociar el candidato.".to_string(),
+                    );
+                    return;
                 };
                 let input = CreateCandidateInput {
-                    job_opening_id: opening_id,
+                    job_opening_id: opening.id,
                     full_name: app.input_1.clone(),
                     email: app.input_2.clone(),
                     resume_summary: None,
                 };
                 match app.api.create_candidate(input).await {
                     Ok(cand) => {
-                        app.set_popup(PopupKind::Success, format!("Candidato '{}' registrado.", cand.full_name));
+                        app.set_popup(
+                            PopupKind::Success,
+                            format!("Candidato '{}' registrado.", cand.full_name),
+                        );
                         app.sub_view = SubView::List3;
                         app.clear_inputs();
                         app.refresh_data().await;
@@ -619,7 +684,9 @@ async fn handle_events_keys(app: &mut App, code: KeyCode) {
     match app.sub_view {
         SubView::List1 => match code {
             KeyCode::Up => {
-                if app.list_index > 0 { app.list_index -= 1; }
+                if app.list_index > 0 {
+                    app.list_index -= 1;
+                }
             }
             KeyCode::Down => {
                 if !app.events.is_empty() && app.list_index < app.events.len() - 1 {
@@ -645,23 +712,40 @@ async fn handle_events_keys(app: &mut App, code: KeyCode) {
                 _ => app.input_3.push(c),
             },
             KeyCode::Backspace => match app.active_field {
-                0 => { app.input_1.pop(); }
-                1 => { app.input_2.pop(); }
-                _ => { app.input_3.pop(); }
+                0 => {
+                    app.input_1.pop();
+                }
+                1 => {
+                    app.input_2.pop();
+                }
+                _ => {
+                    app.input_3.pop();
+                }
             },
             KeyCode::Enter => {
                 let starts = chrono::Utc::now() + chrono::Duration::days(5);
                 let ends = Some(starts + chrono::Duration::days(2));
                 let input = CreateEventInput {
                     name: app.input_1.clone(),
-                    location: if app.input_2.is_empty() { None } else { Some(app.input_2.clone()) },
-                    description: if app.input_3.is_empty() { None } else { Some(app.input_3.clone()) },
+                    location: if app.input_2.is_empty() {
+                        None
+                    } else {
+                        Some(app.input_2.clone())
+                    },
+                    description: if app.input_3.is_empty() {
+                        None
+                    } else {
+                        Some(app.input_3.clone())
+                    },
                     starts_at: starts,
                     ends_at: ends,
                 };
                 match app.api.create_event(input).await {
                     Ok(ev) => {
-                        app.set_popup(PopupKind::Success, format!("Evento '{}' programado exitosamente.", ev.name));
+                        app.set_popup(
+                            PopupKind::Success,
+                            format!("Evento '{}' programado exitosamente.", ev.name),
+                        );
                         app.sub_view = SubView::List1;
                         app.clear_inputs();
                         app.refresh_data().await;
@@ -682,16 +766,7 @@ async fn handle_events_keys(app: &mut App, code: KeyCode) {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::api::MockApiClient;
     use validator::Validate;
-
-    #[tokio::test]
-    async fn test_mock_api_login_and_areas() {
-        let api = MockApiClient::new();
-        let session = api.login("prod.editor", "EditorialDev!2026").await.unwrap();
-        assert_eq!(session.user.area, AreaCode::Production);
-        assert!(session.token.is_some());
-    }
 
     #[tokio::test]
     async fn test_validation_rejects_invalid_inputs() {
@@ -710,100 +785,37 @@ mod tests {
         assert!(valid_client.validate().is_ok());
     }
 
-    #[tokio::test]
-    async fn test_case_status_transition() {
-        let api = MockApiClient::new();
-        let cases = api.list_cases(0, 10).await.unwrap();
-        assert!(!cases.content.is_empty());
-        let first_case = &cases.content[0];
-        let updated = api.update_case_status(first_case.id, CaseStatus::Closed).await.unwrap();
-        assert_eq!(updated.status, CaseStatus::Closed);
-    }
+    #[test]
+    fn test_api_request_payloads_use_core_field_names() {
+        let case_json = serde_json::to_value(CreateCaseInput {
+            client_id: uuid::Uuid::nil(),
+            subject: "Caso de prueba".to_string(),
+            description: "Descripción válida del caso".to_string(),
+        })
+        .unwrap();
+        assert!(case_json.get("clientId").is_some());
+        assert!(case_json.get("client_id").is_none());
 
-    #[tokio::test]
-    async fn test_event_date_validation() {
-        let api = MockApiClient::new();
-        let now = chrono::Utc::now();
-        let invalid_event = CreateEventInput {
-            name: "Feria del Libro".to_string(),
+        let candidate_json = serde_json::to_value(CreateCandidateInput {
+            job_opening_id: uuid::Uuid::nil(),
+            full_name: "Candidato de Prueba".to_string(),
+            email: "candidato@example.com".to_string(),
+            resume_summary: None,
+        })
+        .unwrap();
+        assert!(candidate_json.get("jobOpeningId").is_some());
+        assert!(candidate_json.get("fullName").is_some());
+        assert!(candidate_json.get("resumeSummary").is_some());
+
+        let event_json = serde_json::to_value(CreateEventInput {
+            name: "Evento de prueba".to_string(),
             description: None,
-            location: Some("Maracaibo".to_string()),
-            starts_at: now,
-            ends_at: Some(now - chrono::Duration::hours(2)),
-        };
-        let res = api.create_event(invalid_event).await;
-        assert!(res.is_err());
-    }
-
-    #[tokio::test]
-    async fn test_app_rbac_enforcement() {
-        let config = AppConfig {
-            core_api_url: "http://localhost:8080".to_string(),
-            terminal_area: None,
-            mock_mode: true,
-        };
-        let mut app = App::new(config);
-        login_quick(&mut app, "atencion.agente").await;
-        assert_eq!(app.current_screen, CurrentScreen::MainMenu);
-
-        let allowed = app.check_area_access(AreaCode::Attention);
-        assert!(allowed);
-
-        let denied = app.check_area_access(AreaCode::Production);
-        assert!(!denied);
-        assert!(app.popup.is_some());
-        let (kind, msg) = app.popup.as_ref().unwrap();
-        assert_eq!(*kind, PopupKind::Error);
-        assert!(msg.contains("ACCESO DENEGADO (403)"));
-    }
-
-    #[tokio::test]
-    async fn test_app_login_and_logout() {
-        let config = AppConfig {
-            core_api_url: "http://localhost:8080".to_string(),
-            terminal_area: None,
-            mock_mode: true,
-        };
-        let mut app = App::new(config);
-        assert!(app.session.is_none());
-
-        login_quick(&mut app, "prod.editor").await;
-        assert!(app.session.is_some());
-        assert_eq!(app.session.as_ref().unwrap().user.area, AreaCode::Production);
-
-        app.logout();
-        assert!(app.session.is_none());
-        assert_eq!(app.current_screen, CurrentScreen::Login);
-    }
-
-    #[tokio::test]
-    async fn test_app_article_workflow() {
-        let config = AppConfig {
-            core_api_url: "http://localhost:8080".to_string(),
-            terminal_area: None,
-            mock_mode: true,
-        };
-        let mut app = App::new(config);
-        login_quick(&mut app, "prod.editor").await;
-        app.current_screen = CurrentScreen::Content;
-        app.refresh_data().await;
-        let initial_count = app.articles.len();
-
-        let new_art = app.api.create_article(CreateArticleInput {
-            title: "Nueva edición especial 2026".to_string(),
-            summary: Some("Lanzamiento editorial lacustre".to_string()),
-            body: "Cuerpo detallado de la nueva edición especial para circulación regional.".to_string(),
-        }).await.unwrap();
-
-        assert_eq!(new_art.status, ArticleStatus::Draft);
-        let reviewed = app.api.update_article_status(new_art.id, ArticleStatus::Review).await.unwrap();
-        assert_eq!(reviewed.status, ArticleStatus::Review);
-
-        let published = app.api.update_article_status(new_art.id, ArticleStatus::Published).await.unwrap();
-        assert_eq!(published.status, ArticleStatus::Published);
-        assert!(published.published_at.is_some());
-
-        app.refresh_data().await;
-        assert_eq!(app.articles.len(), initial_count + 1);
+            location: None,
+            starts_at: chrono::Utc::now(),
+            ends_at: None,
+        })
+        .unwrap();
+        assert!(event_json.get("startsAt").is_some());
+        assert!(event_json.get("starts_at").is_none());
     }
 }

@@ -47,7 +47,6 @@ cargo run
   * `[Esc]`: Volver a la pantalla o listado anterior / Cerrar sesión.
   * `[Enter]` / `[Espacio]`: Cerrar ventanas emergentes de error o notificación.
 * **Pantalla de Login:**
-  * `[1]` a `[4]`: Selección instantánea de perfiles de prueba de área (`atencion.agente`, `prod.editor`, `rrhh.gerente`, `recluta.especialista`).
   * `[Tab]`: Alternar entre campo de usuario y contraseña.
   * `[Enter]`: Iniciar sesión con las credenciales escritas.
 * **Menú Principal (Control de Acceso RBAC):**
@@ -72,7 +71,6 @@ docker build -t editorial-tui:latest .
 ```bash
 docker run -it --rm \
   -e CORE_API_URL=http://10.20.30.10:8080 \
-  -e MOCK_MODE=true \
   editorial-tui:latest
 ```
 
@@ -83,7 +81,6 @@ por área (`tui_atencion`, `tui_produccion`, `tui_reclutamiento`, `tui_rrhh` y `
 Estas redes Docker reproducen la separación lógica de las VLAN, pero no crean VLAN 802.1Q ni
 sustituyen el enrutamiento y las reglas del firewall físico o virtual.
 
-`MOCK_MODE=true` es una simulación local en memoria: no autentica contra LDAP, no persiste en
-PostgreSQL y no representa una prueba de conectividad entre VLAN. En despliegues integrados debe
-usarse `MOCK_MODE=false`; los errores del Core deben corregirse en el servicio responsable y no
-interpretarse como datos reales de la terminal.
+El TUI no contiene datos de prueba ni un modo de autenticación local. Todas las credenciales se
+validan en el Core contra LDAP o la configuración segura del entorno, y los errores de conectividad
+se muestran al usuario sin conceder una sesión alternativa.

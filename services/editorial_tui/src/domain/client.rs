@@ -58,6 +58,7 @@ pub struct SupportCase {
 }
 
 #[derive(Debug, Clone, Validate, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct CreateClientInput {
     #[validate(length(min = 3, max = 255, message = "El nombre debe tener entre 3 y 255 caracteres"))]
     pub full_name: String,
@@ -68,6 +69,7 @@ pub struct CreateClientInput {
 }
 
 #[derive(Debug, Clone, Validate, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct CreateCaseInput {
     pub client_id: Uuid,
     #[validate(length(min = 5, max = 255, message = "El asunto debe tener entre 5 y 255 caracteres"))]

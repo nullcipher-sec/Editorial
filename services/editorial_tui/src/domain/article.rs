@@ -52,6 +52,7 @@ pub struct Article {
 }
 
 #[derive(Debug, Clone, Validate, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct CreateArticleInput {
     #[validate(length(min = 5, max = 255, message = "El título debe tener entre 5 y 255 caracteres"))]
     pub title: String,

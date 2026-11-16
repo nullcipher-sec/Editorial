@@ -33,6 +33,7 @@ pub struct Candidate {
 }
 
 #[derive(Debug, Clone, Validate, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct CreateJobOpeningInput {
     #[validate(length(min = 5, max = 255, message = "El título debe tener entre 5 y 255 caracteres"))]
     pub title: String,
@@ -42,6 +43,7 @@ pub struct CreateJobOpeningInput {
 }
 
 #[derive(Debug, Clone, Validate, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct CreateCandidateInput {
     pub job_opening_id: Uuid,
     #[validate(length(min = 3, max = 255, message = "El nombre completo debe tener entre 3 y 255 caracteres"))]
