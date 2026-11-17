@@ -100,6 +100,27 @@ paths:
         '403':
           $ref: '#/components/responses/Forbidden'
 
+  /api/internal/attention/clients/{id}:
+    delete:
+      tags: [Internal]
+      summary: Delete a client (Atención only)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: OK
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
   /api/internal/attention/cases:
     get:
       tags: [Internal]
@@ -122,6 +143,27 @@ paths:
         '403':
           $ref: '#/components/responses/Forbidden'
 
+  /api/internal/attention/cases/{id}:
+    delete:
+      tags: [Internal]
+      summary: Delete a support case (Atención only)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: OK
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
   /api/internal/content/articles:
     get:
       tags: [Internal]
@@ -143,6 +185,22 @@ paths:
           $ref: '#/components/responses/Unauthorized'
         '403':
           $ref: '#/components/responses/Forbidden'
+
+  /api/internal/content/articles/{id}:
+    delete:
+      tags: [Internal]
+      summary: Delete an article (Producción only)
+      parameters:
+        - $ref: '#/components/parameters/ArticleId'
+      responses:
+        '200':
+          description: OK
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
 
   /api/internal/content/articles/{id}/publish:
     patch:
@@ -195,6 +253,27 @@ paths:
         '409':
           description: employeeCode already exists
 
+  /api/internal/hr/employees/{id}:
+    delete:
+      tags: [Internal]
+      summary: Delete / dismiss an employee from their position (HR only)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: OK
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
   /api/internal/hr/job-openings:
     get:
       tags: [Internal]
@@ -212,6 +291,69 @@ paths:
           $ref: '#/components/responses/Unauthorized'
         '403':
           $ref: '#/components/responses/Forbidden'
+
+  /api/internal/hr/job-openings/{id}:
+    delete:
+      tags: [Internal]
+      summary: Delete a job opening (HR only)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: OK
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /api/internal/hr/candidates/{id}/accept:
+    post:
+      tags: [Internal]
+      summary: Accept a candidate and hire as permanent employee (HR only)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: OK
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /api/internal/hr/candidates/{id}:
+    delete:
+      tags: [Internal]
+      summary: Remove / discard a candidate from a job opening (HR only)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: OK
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
 
   /api/internal/recruitment/candidates:
     get:
@@ -231,6 +373,27 @@ paths:
         '403':
           $ref: '#/components/responses/Forbidden'
 
+  /api/internal/recruitment/candidates/{id}:
+    delete:
+      tags: [Internal]
+      summary: Delete / withdraw a candidate (Recruitment only)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: OK
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
   /api/internal/events:
     get:
       tags: [Internal]
@@ -248,6 +411,27 @@ paths:
           $ref: '#/components/responses/Unauthorized'
         '403':
           $ref: '#/components/responses/Forbidden'
+
+  /api/internal/events/{id}:
+    delete:
+      tags: [Internal]
+      summary: Cancel / delete an event (Marketing only)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: OK
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
 
   /api/internal/marketing/campaigns:
     get:

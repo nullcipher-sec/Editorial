@@ -16,7 +16,12 @@ pub fn render_content(frame: &mut Frame, area: Rect, app: &App) {
         .split(area);
 
     let tab_text = match app.sub_view {
-        SubView::List1 => " [Listado de Artículos]  |  [N] Nuevo Artículo  |  [R] Enviar a Revisión  |  [P] Publicar",
+        SubView::List1 => match app.articles.get(app.list_index).map(|a| a.status) {
+            Some(ArticleStatus::Draft) => " [Listado de Artículos]  |  [N] Nuevo  |  [R] Enviar a Revisión  |  [D] Eliminar",
+            Some(ArticleStatus::Review) => " [Listado de Artículos]  |  [N] Nuevo  |  [P] Publicar  |  [D] Eliminar",
+            Some(ArticleStatus::Published) => " [Listado de Artículos]  |  [N] Nuevo  |  [D] Eliminar",
+            _ => " [Listado de Artículos]  |  [N] Nuevo",
+        },
         SubView::Detail => " [Lectura de Artículo]  |  [Esc] Volver a la Lista",
         SubView::Form1 => " [FORMULARIO: Redactar Nuevo Artículo Editorial]",
         _ => " [Módulo de Contenido Editorial]",
@@ -70,6 +75,14 @@ fn render_articles_table(frame: &mut Frame, area: Rect, app: &App) {
         ])
     });
 
+    let selected_status = app.articles.get(app.list_index).map(|a| a.status);
+    let contextual_actions = match selected_status {
+        Some(ArticleStatus::Draft) => "[Enter] Leer detalle  |  [R] Revisión  |  [D] Eliminar  |  [N] Nuevo",
+        Some(ArticleStatus::Review) => "[Enter] Leer detalle  |  [P] Publicar  |  [D] Eliminar  |  [N] Nuevo",
+        Some(ArticleStatus::Published) => "[Enter] Leer detalle  |  [D] Eliminar  |  [N] Nuevo",
+        None => "[N] Redactar Nuevo Artículo",
+    };
+
     let table = Table::new(
         rows,
         [
@@ -82,7 +95,7 @@ fn render_articles_table(frame: &mut Frame, area: Rect, app: &App) {
     .header(header)
     .block(
         Block::default()
-            .title(" Artículos — [Enter] Leer detalle, [R] Enviar a Revisión, [P] Publicar al Noticiero ")
+            .title(format!(" Artículos — {} ", contextual_actions))
             .borders(Borders::ALL)
             .border_style(Style::default().fg(SULTANA_THEME.primary)),
     );
@@ -147,17 +160,17 @@ fn render_new_article_form(frame: &mut Frame, area: Rect, app: &App) {
 
     let lines = vec![
         Line::from(vec![
-            Span::styled("  Título de la Noticia: ", Style::default().fg(SULTANA_THEME.text_dim)),
+            Span::styled("  Título (mínimo 5 caracteres):        ", Style::default().fg(SULTANA_THEME.text_dim)),
             Span::styled(format!("{}{}", app.input_1, f1), Style::default().fg(SULTANA_THEME.text_bright)),
         ]),
         Line::from(""),
         Line::from(vec![
-            Span::styled("  Resumen Breve:        ", Style::default().fg(SULTANA_THEME.text_dim)),
+            Span::styled("  Resumen Breve (opcional):            ", Style::default().fg(SULTANA_THEME.text_dim)),
             Span::styled(format!("{}{}", app.input_2, f2), Style::default().fg(SULTANA_THEME.text_bright)),
         ]),
         Line::from(""),
         Line::from(vec![
-            Span::styled("  Cuerpo Completo:      ", Style::default().fg(SULTANA_THEME.text_dim)),
+            Span::styled("  Cuerpo Completo (mínimo 20 caracteres): ", Style::default().fg(SULTANA_THEME.text_dim)),
             Span::styled(format!("{}{}", app.input_3, f3), Style::default().fg(SULTANA_THEME.text_bright)),
         ]),
         Line::from(""),

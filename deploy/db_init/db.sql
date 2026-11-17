@@ -137,3 +137,11 @@ INSERT INTO article (id, title, summary, body, status, author_id, published_at) 
         '11111111-1111-1111-1111-111111111101',
         NULL
     );
+
+INSERT INTO client (id, full_name, email, phone) VALUES
+    ('22222222-2222-2222-2222-222222222201', 'Librería Bolívar C.A.', 'contacto@libreriabolivar.com', '+58-261-7001122'),
+    ('22222222-2222-2222-2222-222222222202', 'Distribuidora Zuliana de Libros', 'distribucion@zulialibros.com', '+58-261-7003344');
+
+INSERT INTO support_case (id, client_id, subject, description, status, assigned_to) VALUES
+    ('33333333-3333-3333-3333-333333333301', '22222222-2222-2222-2222-222222222201', 'Retraso en entrega de tirada semanal', 'El cliente reporta demoras en el despacho de la edición impresa.', 'OPEN', '11111111-1111-1111-1111-111111111102'),
+    ('33333333-3333-3333-3333-333333333302', '22222222-2222-2222-2222-222222222202', 'Cotización de reimpresión de catálogo', 'Solicitud formal para reimprimir 500 ejemplares del catálogo.', 'IN_PROGRESS', '11111111-1111-1111-1111-111111111102');

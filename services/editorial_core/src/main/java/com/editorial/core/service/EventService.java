@@ -1,6 +1,8 @@
 package com.editorial.core.service;
 
 import com.editorial.core.entity.Event;
+import com.editorial.core.exception.ControllerException;
+import com.editorial.core.exception.ErrorResponses;
 import com.editorial.core.model.request.CreateEventRequest;
 import com.editorial.core.model.response.EventResponse;
 import com.editorial.core.repository.EventRepository;
@@ -29,5 +31,12 @@ public class EventService {
         event.setCreatedAt(Instant.now());
         event = eventRepository.save(event);
         return new EventResponse(event.getId(), event.getName(), event.getLocation(), event.getStartsAt());
+    }
+
+    @Transactional
+    public void delete(UUID id) throws ControllerException {
+        Event event = eventRepository.findById(id)
+                .orElseThrow(() -> new ControllerException(ErrorResponses.NOT_FOUND));
+        eventRepository.delete(event);
     }
 }

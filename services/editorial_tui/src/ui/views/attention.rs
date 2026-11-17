@@ -16,8 +16,8 @@ pub fn render_attention(frame: &mut Frame, area: Rect, app: &App) {
         .split(area);
 
     let tab_text = match app.sub_view {
-        SubView::List1 => " [Casos de Soporte]  |  (Presione [C] para ver Clientes)  |  (Presione [N] para Nuevo Caso)",
-        SubView::List2 => " (Presione [V] para ver Casos)  |  [Listado de Clientes]  |  (Presione [R] para Registrar Cliente)",
+        SubView::List1 => " [Casos de Soporte]  |  [N] Nuevo Caso  |  [R] Registrar Cliente  |  [C] Ver Clientes  |  [D] Eliminar Caso",
+        SubView::List2 => " [V] Ver Casos  |  [Listado de Clientes]  |  [R] Registrar Cliente  |  [D] Eliminar Cliente",
         SubView::Form1 => " [FORMULARIO: Registrar Nuevo Cliente]",
         SubView::Form2 => " [FORMULARIO: Registrar Nuevo Caso de Soporte]",
         _ => " [Módulo de Atención al Cliente]",
@@ -59,12 +59,18 @@ fn render_cases_table(frame: &mut Frame, area: Rect, app: &App) {
             Style::default().fg(SULTANA_THEME.text_bright)
         };
 
+        let action_cell = match c.status {
+            CaseStatus::Open => Cell::from("[S] En Progreso").style(Style::default().fg(SULTANA_THEME.accent)),
+            CaseStatus::InProgress => Cell::from("[S] Cerrar Caso").style(Style::default().fg(SULTANA_THEME.warning)),
+            CaseStatus::Closed => Cell::from("(Finalizado)").style(Style::default().fg(SULTANA_THEME.text_dim)),
+        };
+
         Row::new(vec![
             Cell::from(format!("{}", idx + 1)).style(style),
             Cell::from(c.subject.clone()).style(style),
             Cell::from(c.status.display_name()).style(Style::default().fg(status_color).add_modifier(Modifier::BOLD)),
             Cell::from(c.id.to_string()[..8].to_string()).style(style),
-            Cell::from("[S] Cambiar Estado").style(Style::default().fg(SULTANA_THEME.accent)),
+            action_cell,
         ])
     });
 
@@ -81,7 +87,7 @@ fn render_cases_table(frame: &mut Frame, area: Rect, app: &App) {
     .header(header)
     .block(
         Block::default()
-            .title(" Casos de Atención Registrados — Use [↑/↓] para navegar, [S] para avanzar estado ")
+            .title(" Casos de Atención Registrados — [↑/↓] Navegar, [S] Avanzar estado, [N] Nuevo Caso, [R] Registrar Cliente, [C] Clientes, [D] Eliminar ")
             .borders(Borders::ALL)
             .border_style(Style::default().fg(SULTANA_THEME.primary)),
     );
@@ -123,7 +129,7 @@ fn render_clients_table(frame: &mut Frame, area: Rect, app: &App) {
     .header(header)
     .block(
         Block::default()
-            .title(" Directorio de Clientes — Use [R] para nuevo cliente, [V] para volver a casos ")
+            .title(" Directorio de Clientes — [↑/↓] Navegar, [D] Eliminar Cliente, [R] Registrar Nuevo, [V] Volver a Casos ")
             .borders(Borders::ALL)
             .border_style(Style::default().fg(SULTANA_THEME.primary)),
     );
@@ -143,17 +149,17 @@ fn render_new_client_form(frame: &mut Frame, area: Rect, app: &App) {
 
     let lines = vec![
         Line::from(vec![
-            Span::styled("  Nombre o Empresa: ", Style::default().fg(SULTANA_THEME.text_dim)),
+            Span::styled("  Nombre o Empresa (mínimo 3 caracteres): ", Style::default().fg(SULTANA_THEME.text_dim)),
             Span::styled(format!("{}{}", app.input_1, f1), Style::default().fg(SULTANA_THEME.text_bright)),
         ]),
         Line::from(""),
         Line::from(vec![
-            Span::styled("  Correo Electrónico: ", Style::default().fg(SULTANA_THEME.text_dim)),
+            Span::styled("  Correo (opcional, ej. contacto@libreria.com): ", Style::default().fg(SULTANA_THEME.text_dim)),
             Span::styled(format!("{}{}", app.input_2, f2), Style::default().fg(SULTANA_THEME.text_bright)),
         ]),
         Line::from(""),
         Line::from(vec![
-            Span::styled("  Teléfono:          ", Style::default().fg(SULTANA_THEME.text_dim)),
+            Span::styled("  Teléfono (opcional, ej. +58-261-7001122):     ", Style::default().fg(SULTANA_THEME.text_dim)),
             Span::styled(format!("{}{}", app.input_3, f3), Style::default().fg(SULTANA_THEME.text_bright)),
         ]),
         Line::from(""),
@@ -198,12 +204,12 @@ fn render_new_case_form(frame: &mut Frame, area: Rect, app: &App) {
         ]),
         Line::from(""),
         Line::from(vec![
-            Span::styled("  Asunto del Caso:  ", Style::default().fg(SULTANA_THEME.text_dim)),
+            Span::styled("  Asunto (mínimo 5 caracteres):       ", Style::default().fg(SULTANA_THEME.text_dim)),
             Span::styled(format!("{}{}", app.input_1, f1), Style::default().fg(SULTANA_THEME.text_bright)),
         ]),
         Line::from(""),
         Line::from(vec![
-            Span::styled("  Descripción:      ", Style::default().fg(SULTANA_THEME.text_dim)),
+            Span::styled("  Descripción (mínimo 10 caracteres): ", Style::default().fg(SULTANA_THEME.text_dim)),
             Span::styled(format!("{}{}", app.input_2, f2), Style::default().fg(SULTANA_THEME.text_bright)),
         ]),
         Line::from(""),

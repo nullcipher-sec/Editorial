@@ -15,7 +15,7 @@ pub fn render_events(frame: &mut Frame, area: Rect, app: &App) {
         .split(area);
 
     let tab_text = match app.sub_view {
-        SubView::List1 => " [Listado de Eventos]  |  (Presione [N] para Programar Evento)",
+        SubView::List1 => " [Listado de Eventos]  |  [N] Programar Evento  |  [D] Eliminar Evento",
         SubView::Form1 => " [FORMULARIO: Programación de Evento Literario]",
         _ => " [Módulo de Eventos]",
     };
@@ -76,7 +76,7 @@ fn render_events_table(frame: &mut Frame, area: Rect, app: &App) {
     .header(header)
     .block(
         Block::default()
-            .title(" Agenda de Eventos — Use [N] para crear nuevo evento, [Esc] para volver ")
+            .title(" Agenda de Eventos — [↑/↓] Navegar, [N] Programar Evento, [D] Eliminar Evento, [Esc] Volver ")
             .borders(Borders::ALL)
             .border_style(Style::default().fg(SULTANA_THEME.primary)),
     );

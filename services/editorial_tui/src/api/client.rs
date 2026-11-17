@@ -3,7 +3,7 @@ use crate::auth::Session;
 use crate::domain::{
     Article, ArticleStatus, ArticleSummary, Candidate, CaseStatus, Client, CreateArticleInput,
     CreateCandidateInput, CreateCaseInput, CreateClientInput, CreateEventInput,
-    CreateJobOpeningInput, Employee, Event, JobOpening, PageResponse, SupportCase,
+    CreateJobOpeningInput, Employee, ErrorBody, Event, JobOpening, PageResponse, SupportCase,
 };
 use reqwest::{header, Client as HttpClient, StatusCode};
 use std::sync::Arc;
@@ -49,23 +49,40 @@ impl HttpApiClient {
         r.as_ref().map(|t| format!("Bearer {}", t))
     }
 
-    async fn handle_status(status: StatusCode) -> Result<(), ApiError> {
+    async fn handle_error(resp: reqwest::Response) -> ApiError {
+        let status = resp.status();
+        let body_msg = if let Ok(err) = resp.json::<ErrorBody>().await {
+            err.message
+        } else {
+            String::new()
+        };
+
         match status {
-            StatusCode::UNAUTHORIZED => Err(ApiError::Unauthorized),
-            StatusCode::FORBIDDEN => Err(ApiError::Forbidden),
-            StatusCode::NOT_FOUND => Err(ApiError::NotFound),
-            StatusCode::NOT_IMPLEMENTED => Err(ApiError::NotImplemented(
-                "Endpoint no implementado aún en el Core (Fase 1)".to_string(),
-            )),
-            _ if status.is_server_error() => Err(ApiError::Network(format!(
-                "Error interno del servidor: {}",
-                status
-            ))),
-            _ if status.is_client_error() => Err(ApiError::Validation(format!(
-                "Petición inválida del cliente: {}",
-                status
-            ))),
-            _ => Ok(()),
+            StatusCode::UNAUTHORIZED => ApiError::Unauthorized,
+            StatusCode::FORBIDDEN => ApiError::Forbidden,
+            StatusCode::NOT_FOUND => ApiError::NotFound,
+            StatusCode::NOT_IMPLEMENTED => {
+                if body_msg.is_empty() {
+                    ApiError::NotImplemented("Operación no implementada aún en el Core".to_string())
+                } else {
+                    ApiError::NotImplemented(body_msg)
+                }
+            }
+            _ if status.is_client_error() => {
+                if body_msg.is_empty() {
+                    ApiError::Validation(format!("Petición inválida del cliente: {}", status))
+                } else {
+                    ApiError::Validation(body_msg)
+                }
+            }
+            _ if status.is_server_error() => {
+                if body_msg.is_empty() {
+                    ApiError::Network(format!("Error interno del servidor: {}", status))
+                } else {
+                    ApiError::Network(body_msg)
+                }
+            }
+            _ => ApiError::Network(format!("Estado inesperado: {}", status)),
         }
     }
 }
@@ -85,8 +102,7 @@ impl EditorialApi for HttpApiClient {
 
         match res {
             Ok(response) => {
-                let status = response.status();
-                if status.is_success() {
+                if response.status().is_success() {
                     let session: Session = response
                         .json()
                         .await
@@ -96,8 +112,7 @@ impl EditorialApi for HttpApiClient {
                     }
                     Ok(session)
                 } else {
-                    Self::handle_status(status).await?;
-                    Err(ApiError::Network(format!("Estado inesperado: {}", status)))
+                    Err(Self::handle_error(response).await)
                 }
             }
             Err(e) => Err(ApiError::Network(format!(
@@ -119,14 +134,12 @@ impl EditorialApi for HttpApiClient {
 
         match req.send().await {
             Ok(resp) => {
-                let status = resp.status();
-                if status.is_success() {
+                if resp.status().is_success() {
                     resp.json()
                         .await
                         .map_err(|e| ApiError::Serialization(e.to_string()))
                 } else {
-                    Self::handle_status(status).await?;
-                    Err(ApiError::Network(format!("Estado inesperado: {}", status)))
+                    Err(Self::handle_error(resp).await)
                 }
             }
             Err(e) => Err(ApiError::Network(format!(
@@ -145,14 +158,12 @@ impl EditorialApi for HttpApiClient {
 
         match req.send().await {
             Ok(resp) => {
-                let status = resp.status();
-                if status.is_success() {
+                if resp.status().is_success() {
                     resp.json()
                         .await
                         .map_err(|e| ApiError::Serialization(e.to_string()))
                 } else {
-                    Self::handle_status(status).await?;
-                    Err(ApiError::Network(format!("Estado inesperado: {}", status)))
+                    Err(Self::handle_error(resp).await)
                 }
             }
             Err(e) => Err(ApiError::Network(format!(
@@ -178,14 +189,34 @@ impl EditorialApi for HttpApiClient {
 
         match req.send().await {
             Ok(resp) => {
-                let status = resp.status();
-                if status.is_success() {
+                if resp.status().is_success() {
                     resp.json()
                         .await
                         .map_err(|e| ApiError::Serialization(e.to_string()))
                 } else {
-                    Self::handle_status(status).await?;
-                    Err(ApiError::Network(format!("Estado inesperado: {}", status)))
+                    Err(Self::handle_error(resp).await)
+                }
+            }
+            Err(e) => Err(ApiError::Network(format!(
+                "No se pudo conectar con el Core: {}",
+                e
+            ))),
+        }
+    }
+
+    async fn delete_client(&self, id: Uuid) -> Result<(), ApiError> {
+        let url = format!("{}/api/internal/attention/clients/{}", self.base_url, id);
+        let mut req = self.client.delete(&url);
+        if let Some(h) = self.auth_header().await {
+            req = req.header(header::AUTHORIZATION, h);
+        }
+
+        match req.send().await {
+            Ok(resp) => {
+                if resp.status().is_success() {
+                    Ok(())
+                } else {
+                    Err(Self::handle_error(resp).await)
                 }
             }
             Err(e) => Err(ApiError::Network(format!(
@@ -204,14 +235,12 @@ impl EditorialApi for HttpApiClient {
 
         match req.send().await {
             Ok(resp) => {
-                let status = resp.status();
-                if status.is_success() {
+                if resp.status().is_success() {
                     resp.json()
                         .await
                         .map_err(|e| ApiError::Serialization(e.to_string()))
                 } else {
-                    Self::handle_status(status).await?;
-                    Err(ApiError::Network(format!("Estado inesperado: {}", status)))
+                    Err(Self::handle_error(resp).await)
                 }
             }
             Err(e) => Err(ApiError::Network(format!(
@@ -237,14 +266,34 @@ impl EditorialApi for HttpApiClient {
 
         match req.send().await {
             Ok(resp) => {
-                let s = resp.status();
-                if s.is_success() {
+                if resp.status().is_success() {
                     resp.json()
                         .await
                         .map_err(|e| ApiError::Serialization(e.to_string()))
                 } else {
-                    Self::handle_status(s).await?;
-                    Err(ApiError::Network(format!("Estado inesperado: {}", s)))
+                    Err(Self::handle_error(resp).await)
+                }
+            }
+            Err(e) => Err(ApiError::Network(format!(
+                "No se pudo conectar con el Core: {}",
+                e
+            ))),
+        }
+    }
+
+    async fn delete_case(&self, id: Uuid) -> Result<(), ApiError> {
+        let url = format!("{}/api/internal/attention/cases/{}", self.base_url, id);
+        let mut req = self.client.delete(&url);
+        if let Some(h) = self.auth_header().await {
+            req = req.header(header::AUTHORIZATION, h);
+        }
+
+        match req.send().await {
+            Ok(resp) => {
+                if resp.status().is_success() {
+                    Ok(())
+                } else {
+                    Err(Self::handle_error(resp).await)
                 }
             }
             Err(e) => Err(ApiError::Network(format!(
@@ -270,14 +319,12 @@ impl EditorialApi for HttpApiClient {
 
         match req.send().await {
             Ok(resp) => {
-                let status = resp.status();
-                if status.is_success() {
+                if resp.status().is_success() {
                     resp.json()
                         .await
                         .map_err(|e| ApiError::Serialization(e.to_string()))
                 } else {
-                    Self::handle_status(status).await?;
-                    Err(ApiError::Network(format!("Estado inesperado: {}", status)))
+                    Err(Self::handle_error(resp).await)
                 }
             }
             Err(e) => Err(ApiError::Network(format!(
@@ -295,14 +342,12 @@ impl EditorialApi for HttpApiClient {
         }
         match req.send().await {
             Ok(resp) => {
-                let status = resp.status();
-                if status.is_success() {
+                if resp.status().is_success() {
                     resp.json()
                         .await
                         .map_err(|e| ApiError::Serialization(e.to_string()))
                 } else {
-                    Self::handle_status(status).await?;
-                    Err(ApiError::Network(format!("Estado inesperado: {}", status)))
+                    Err(Self::handle_error(resp).await)
                 }
             }
             Err(e) => Err(ApiError::Network(format!(
@@ -321,14 +366,12 @@ impl EditorialApi for HttpApiClient {
 
         match req.send().await {
             Ok(resp) => {
-                let status = resp.status();
-                if status.is_success() {
+                if resp.status().is_success() {
                     resp.json()
                         .await
                         .map_err(|e| ApiError::Serialization(e.to_string()))
                 } else {
-                    Self::handle_status(status).await?;
-                    Err(ApiError::Network(format!("Estado inesperado: {}", status)))
+                    Err(Self::handle_error(resp).await)
                 }
             }
             Err(e) => Err(ApiError::Network(format!(
@@ -362,14 +405,34 @@ impl EditorialApi for HttpApiClient {
 
         match req.send().await {
             Ok(resp) => {
-                let s = resp.status();
-                if s.is_success() {
+                if resp.status().is_success() {
                     resp.json()
                         .await
                         .map_err(|e| ApiError::Serialization(e.to_string()))
                 } else {
-                    Self::handle_status(s).await?;
-                    Err(ApiError::Network(format!("Estado inesperado: {}", s)))
+                    Err(Self::handle_error(resp).await)
+                }
+            }
+            Err(e) => Err(ApiError::Network(format!(
+                "No se pudo conectar con el Core: {}",
+                e
+            ))),
+        }
+    }
+
+    async fn delete_article(&self, id: Uuid) -> Result<(), ApiError> {
+        let url = format!("{}/api/internal/content/articles/{}", self.base_url, id);
+        let mut req = self.client.delete(&url);
+        if let Some(h) = self.auth_header().await {
+            req = req.header(header::AUTHORIZATION, h);
+        }
+
+        match req.send().await {
+            Ok(resp) => {
+                if resp.status().is_success() {
+                    Ok(())
+                } else {
+                    Err(Self::handle_error(resp).await)
                 }
             }
             Err(e) => Err(ApiError::Network(format!(
@@ -395,14 +458,12 @@ impl EditorialApi for HttpApiClient {
 
         match req.send().await {
             Ok(resp) => {
-                let status = resp.status();
-                if status.is_success() {
+                if resp.status().is_success() {
                     resp.json()
                         .await
                         .map_err(|e| ApiError::Serialization(e.to_string()))
                 } else {
-                    Self::handle_status(status).await?;
-                    Err(ApiError::Network(format!("Estado inesperado: {}", status)))
+                    Err(Self::handle_error(resp).await)
                 }
             }
             Err(e) => Err(ApiError::Network(format!(
@@ -428,14 +489,12 @@ impl EditorialApi for HttpApiClient {
 
         match req.send().await {
             Ok(resp) => {
-                let status = resp.status();
-                if status.is_success() {
+                if resp.status().is_success() {
                     resp.json()
                         .await
                         .map_err(|e| ApiError::Serialization(e.to_string()))
                 } else {
-                    Self::handle_status(status).await?;
-                    Err(ApiError::Network(format!("Estado inesperado: {}", status)))
+                    Err(Self::handle_error(resp).await)
                 }
             }
             Err(e) => Err(ApiError::Network(format!(
@@ -457,14 +516,34 @@ impl EditorialApi for HttpApiClient {
 
         match req.send().await {
             Ok(resp) => {
-                let status = resp.status();
-                if status.is_success() {
+                if resp.status().is_success() {
                     resp.json()
                         .await
                         .map_err(|e| ApiError::Serialization(e.to_string()))
                 } else {
-                    Self::handle_status(status).await?;
-                    Err(ApiError::Network(format!("Estado inesperado: {}", status)))
+                    Err(Self::handle_error(resp).await)
+                }
+            }
+            Err(e) => Err(ApiError::Network(format!(
+                "No se pudo conectar con el Core: {}",
+                e
+            ))),
+        }
+    }
+
+    async fn delete_job_opening(&self, id: Uuid) -> Result<(), ApiError> {
+        let url = format!("{}/api/internal/hr/job-openings/{}", self.base_url, id);
+        let mut req = self.client.delete(&url);
+        if let Some(h) = self.auth_header().await {
+            req = req.header(header::AUTHORIZATION, h);
+        }
+
+        match req.send().await {
+            Ok(resp) => {
+                if resp.status().is_success() {
+                    Ok(())
+                } else {
+                    Err(Self::handle_error(resp).await)
                 }
             }
             Err(e) => Err(ApiError::Network(format!(
@@ -490,14 +569,12 @@ impl EditorialApi for HttpApiClient {
 
         match req.send().await {
             Ok(resp) => {
-                let status = resp.status();
-                if status.is_success() {
+                if resp.status().is_success() {
                     resp.json()
                         .await
                         .map_err(|e| ApiError::Serialization(e.to_string()))
                 } else {
-                    Self::handle_status(status).await?;
-                    Err(ApiError::Network(format!("Estado inesperado: {}", status)))
+                    Err(Self::handle_error(resp).await)
                 }
             }
             Err(e) => Err(ApiError::Network(format!(
@@ -516,14 +593,83 @@ impl EditorialApi for HttpApiClient {
 
         match req.send().await {
             Ok(resp) => {
-                let status = resp.status();
-                if status.is_success() {
+                if resp.status().is_success() {
                     resp.json()
                         .await
                         .map_err(|e| ApiError::Serialization(e.to_string()))
                 } else {
-                    Self::handle_status(status).await?;
-                    Err(ApiError::Network(format!("Estado inesperado: {}", status)))
+                    Err(Self::handle_error(resp).await)
+                }
+            }
+            Err(e) => Err(ApiError::Network(format!(
+                "No se pudo conectar con el Core: {}",
+                e
+            ))),
+        }
+    }
+
+    async fn accept_candidate(&self, candidate_id: Uuid) -> Result<Employee, ApiError> {
+        let url = format!(
+            "{}/api/internal/hr/candidates/{}/accept",
+            self.base_url, candidate_id
+        );
+        let mut req = self.client.post(&url);
+        if let Some(h) = self.auth_header().await {
+            req = req.header(header::AUTHORIZATION, h);
+        }
+
+        match req.send().await {
+            Ok(resp) => {
+                if resp.status().is_success() {
+                    resp.json()
+                        .await
+                        .map_err(|e| ApiError::Serialization(e.to_string()))
+                } else {
+                    Err(Self::handle_error(resp).await)
+                }
+            }
+            Err(e) => Err(ApiError::Network(format!(
+                "No se pudo conectar con el Core: {}",
+                e
+            ))),
+        }
+    }
+
+    async fn delete_employee(&self, employee_id: Uuid) -> Result<(), ApiError> {
+        let url = format!("{}/api/internal/hr/employees/{}", self.base_url, employee_id);
+        let mut req = self.client.delete(&url);
+        if let Some(h) = self.auth_header().await {
+            req = req.header(header::AUTHORIZATION, h);
+        }
+
+        match req.send().await {
+            Ok(resp) => {
+                if resp.status().is_success() {
+                    Ok(())
+                } else {
+                    Err(Self::handle_error(resp).await)
+                }
+            }
+            Err(e) => Err(ApiError::Network(format!(
+                "No se pudo conectar con el Core: {}",
+                e
+            ))),
+        }
+    }
+
+    async fn delete_candidate(&self, candidate_id: Uuid) -> Result<(), ApiError> {
+        let url = format!("{}/api/internal/hr/candidates/{}", self.base_url, candidate_id);
+        let mut req = self.client.delete(&url);
+        if let Some(h) = self.auth_header().await {
+            req = req.header(header::AUTHORIZATION, h);
+        }
+
+        match req.send().await {
+            Ok(resp) => {
+                if resp.status().is_success() {
+                    Ok(())
+                } else {
+                    Err(Self::handle_error(resp).await)
                 }
             }
             Err(e) => Err(ApiError::Network(format!(
@@ -545,14 +691,12 @@ impl EditorialApi for HttpApiClient {
 
         match req.send().await {
             Ok(resp) => {
-                let status = resp.status();
-                if status.is_success() {
+                if resp.status().is_success() {
                     resp.json()
                         .await
                         .map_err(|e| ApiError::Serialization(e.to_string()))
                 } else {
-                    Self::handle_status(status).await?;
-                    Err(ApiError::Network(format!("Estado inesperado: {}", status)))
+                    Err(Self::handle_error(resp).await)
                 }
             }
             Err(e) => Err(ApiError::Network(format!(
@@ -571,14 +715,34 @@ impl EditorialApi for HttpApiClient {
 
         match req.send().await {
             Ok(resp) => {
-                let status = resp.status();
-                if status.is_success() {
+                if resp.status().is_success() {
                     resp.json()
                         .await
                         .map_err(|e| ApiError::Serialization(e.to_string()))
                 } else {
-                    Self::handle_status(status).await?;
-                    Err(ApiError::Network(format!("Estado inesperado: {}", status)))
+                    Err(Self::handle_error(resp).await)
+                }
+            }
+            Err(e) => Err(ApiError::Network(format!(
+                "No se pudo conectar con el Core: {}",
+                e
+            ))),
+        }
+    }
+
+    async fn delete_event(&self, id: Uuid) -> Result<(), ApiError> {
+        let url = format!("{}/api/internal/events/{}", self.base_url, id);
+        let mut req = self.client.delete(&url);
+        if let Some(h) = self.auth_header().await {
+            req = req.header(header::AUTHORIZATION, h);
+        }
+
+        match req.send().await {
+            Ok(resp) => {
+                if resp.status().is_success() {
+                    Ok(())
+                } else {
+                    Err(Self::handle_error(resp).await)
                 }
             }
             Err(e) => Err(ApiError::Network(format!(

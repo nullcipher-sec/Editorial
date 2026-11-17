@@ -6,6 +6,7 @@ import com.editorial.core.exception.ControllerException;
 import com.editorial.core.exception.ErrorResponses;
 import com.editorial.core.model.request.CreateEmployeeRequest;
 import com.editorial.core.model.response.EmployeeResponse;
+import com.editorial.core.repository.CandidateRepository;
 import com.editorial.core.repository.EmployeeRepository;
 import com.editorial.core.model.request.CreateJobOpeningRequest;
 import com.editorial.core.model.response.JobOpeningResponse;
@@ -24,6 +25,7 @@ public class HrService {
 
     private final JobOpeningRepository jobOpeningRepository;
     private final EmployeeRepository employeeRepository;
+    private final CandidateRepository candidateRepository;
 
     @Transactional
     public EmployeeResponse createEmployee(CreateEmployeeRequest request) throws ControllerException {
@@ -65,5 +67,60 @@ public class HrService {
                 opening.getArea().name(),
                 opening.isOpen()
         );
+    }
+
+    @Transactional
+    public void deleteJobOpening(UUID id) throws ControllerException {
+        JobOpening opening = jobOpeningRepository.findById(id)
+                .orElseThrow(() -> new ControllerException(ErrorResponses.NOT_FOUND));
+        jobOpeningRepository.delete(opening);
+    }
+
+    @Transactional
+    public EmployeeResponse acceptCandidate(UUID candidateId) throws ControllerException {
+        var candidate = candidateRepository.findById(candidateId)
+                .orElseThrow(() -> new ControllerException(ErrorResponses.NOT_FOUND));
+
+        long count = employeeRepository.count() + 101;
+        String code = "E-" + count;
+        while (employeeRepository.existsByEmployeeCode(code)) {
+            count++;
+            code = "E-" + count;
+        }
+
+        Employee employee = new Employee();
+        employee.setId(UUID.randomUUID());
+        employee.setEmployeeCode(code);
+        employee.setFullName(candidate.getFullName().trim());
+        employee.setEmail(candidate.getEmail().trim());
+        employee.setDepartment(candidate.getJobOpening().getArea());
+        employee.setHiredAt(LocalDate.now());
+        employee.setActive(true);
+        employee = employeeRepository.save(employee);
+
+        candidate.setStage("HIRED");
+        candidateRepository.save(candidate);
+
+        return new EmployeeResponse(
+                employee.getId(),
+                employee.getEmployeeCode(),
+                employee.getFullName(),
+                employee.getDepartment().name(),
+                employee.isActive()
+        );
+    }
+
+    @Transactional
+    public void deleteEmployee(UUID id) throws ControllerException {
+        Employee employee = employeeRepository.findById(id)
+                .orElseThrow(() -> new ControllerException(ErrorResponses.NOT_FOUND));
+        employeeRepository.delete(employee);
+    }
+
+    @Transactional
+    public void deleteCandidate(UUID id) throws ControllerException {
+        var candidate = candidateRepository.findById(id)
+                .orElseThrow(() -> new ControllerException(ErrorResponses.NOT_FOUND));
+        candidateRepository.delete(candidate);
     }
 }

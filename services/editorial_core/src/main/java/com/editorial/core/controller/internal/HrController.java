@@ -17,11 +17,15 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+
+import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/internal/hr")
@@ -55,6 +59,26 @@ public class HrController {
     @PostMapping("/job-openings")
     public JobOpeningResponse createJobOpening(@Valid @RequestBody CreateJobOpeningRequest body) {
         return hrService.createJobOpening(body);
+    }
+
+    @DeleteMapping("/job-openings/{id}")
+    public void deleteJobOpening(@PathVariable UUID id) throws ControllerException {
+        hrService.deleteJobOpening(id);
+    }
+
+    @PostMapping("/candidates/{id}/accept")
+    public EmployeeResponse acceptCandidate(@PathVariable UUID id) throws ControllerException {
+        return hrService.acceptCandidate(id);
+    }
+
+    @DeleteMapping("/employees/{id}")
+    public void deleteEmployee(@PathVariable UUID id) throws ControllerException {
+        hrService.deleteEmployee(id);
+    }
+
+    @DeleteMapping("/candidates/{id}")
+    public void deleteCandidate(@PathVariable UUID id) throws ControllerException {
+        hrService.deleteCandidate(id);
     }
 
     private EmployeeResponse toEmployee(Employee employee) {

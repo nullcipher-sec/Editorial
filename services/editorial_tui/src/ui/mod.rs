@@ -27,21 +27,27 @@ pub fn render_app(frame: &mut Frame, app: &App) {
         CurrentScreen::MainMenu => render_menu(frame, main_layout[1], app),
         CurrentScreen::Attention => render_attention(frame, main_layout[1], app),
         CurrentScreen::Content => render_content(frame, main_layout[1], app),
+        CurrentScreen::Recruitment => render_recruitment(frame, main_layout[1], app),
         CurrentScreen::Hr => render_hr(frame, main_layout[1], app),
         CurrentScreen::Events => render_events(frame, main_layout[1], app),
     }
 
     let hint = match app.current_screen {
         CurrentScreen::Login => "Login: escriba sus credenciales LDAP y presione [Enter]",
-        CurrentScreen::MainMenu => "Menú: [↑/↓] Navegar  [Enter] Acceder  [5/Esc] Cerrar Sesión",
+        CurrentScreen::MainMenu => "Menú: [↑/↓] Navegar  [Enter] Acceder  [6/Esc] Cerrar Sesión",
         CurrentScreen::Attention => {
-            "Atención: [S] Avanzar Estado  [C] Clientes  [N] Nuevo Caso  [Esc] Volver"
+            "Atención: [S] Avanzar Estado  [N] Nuevo Caso  [R] Registrar Cliente  [C/V] Alternar  [D] Eliminar  [Esc] Volver"
         }
         CurrentScreen::Content => {
-            "Contenido: [Enter] Leer  [N] Redactar  [R] Revisión  [P] Publicar"
+            "Contenido: [Enter] Leer  [N] Redactar  [R] Revisión  [P] Publicar  [D] Eliminar"
         }
-        CurrentScreen::Hr => "RRHH: [V] Vacantes  [C] Candidatos  [E] Empleados  [Esc] Volver",
-        CurrentScreen::Events => "Eventos: [N] Programar  [↑/↓] Navegar  [Esc] Volver",
+        CurrentScreen::Recruitment => {
+            "Reclutamiento: [P] Postular a Vacante  [D] Retirar Postulante  [V/C] Alternar  [Esc] Volver"
+        }
+        CurrentScreen::Hr => {
+            "RRHH: [V] Vacantes  [N] Nueva Vacante  [C] Postulantes  [A] Aceptar  [D] Eliminar  [Esc] Volver"
+        }
+        CurrentScreen::Events => "Eventos: [N] Programar  [D] Eliminar  [↑/↓] Navegar  [Esc] Volver",
     };
     render_footer(frame, main_layout[2], hint);
 

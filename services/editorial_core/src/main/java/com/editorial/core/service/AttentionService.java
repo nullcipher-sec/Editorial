@@ -33,8 +33,10 @@ public class AttentionService {
         Client client = new Client();
         client.setId(UUID.randomUUID());
         client.setFullName(request.getFullName().trim());
-        client.setEmail(request.getEmail());
-        client.setPhone(request.getPhone());
+        String email = request.getEmail() != null && !request.getEmail().isBlank() ? request.getEmail().trim() : null;
+        String phone = request.getPhone() != null && !request.getPhone().isBlank() ? request.getPhone().trim() : null;
+        client.setEmail(email);
+        client.setPhone(phone);
         client.setCreatedAt(Instant.now());
         return toClientResponse(clientRepository.save(client));
     }
@@ -64,6 +66,21 @@ public class AttentionService {
         supportCase.setStatus(request.getStatus());
         supportCase.setUpdatedAt(Instant.now());
         return toCaseResponse(supportCaseRepository.save(supportCase));
+    }
+
+    @Transactional
+    public void deleteCase(UUID id) throws ControllerException {
+        SupportCase supportCase = supportCaseRepository.findById(id)
+                .orElseThrow(() -> new ControllerException(ErrorResponses.NOT_FOUND));
+        supportCaseRepository.delete(supportCase);
+    }
+
+    @Transactional
+    public void deleteClient(UUID id) throws ControllerException {
+        Client client = clientRepository.findById(id)
+                .orElseThrow(() -> new ControllerException(ErrorResponses.NOT_FOUND));
+        supportCaseRepository.deleteAllByClientId(id);
+        clientRepository.delete(client);
     }
 
     public static ClientResponse toClientResponse(Client client) {

@@ -29,7 +29,8 @@ public class ContentArticleService {
         Article article = new Article();
         article.setId(UUID.randomUUID());
         article.setTitle(request.getTitle().trim());
-        article.setSummary(request.getSummary());
+        String summary = request.getSummary() != null && !request.getSummary().isBlank() ? request.getSummary().trim() : null;
+        article.setSummary(summary);
         article.setBody(request.getBody().trim());
         article.setStatus(ArticleStatus.DRAFT);
         article.setAuthor(author);
@@ -65,6 +66,13 @@ public class ContentArticleService {
         article.setPublishedAt(now);
         article.setUpdatedAt(now);
         return toResponse(articleRepository.save(article));
+    }
+
+    @Transactional
+    public void delete(UUID id) throws ControllerException {
+        Article article = articleRepository.findById(id)
+                .orElseThrow(() -> new ControllerException(ErrorResponses.NOT_FOUND));
+        articleRepository.delete(article);
     }
 
     static ArticleResponse toResponse(Article article) {

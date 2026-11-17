@@ -10,6 +10,7 @@ pub struct Employee {
     pub employee_code: String,
     #[serde(rename = "fullName")]
     pub full_name: String,
+    #[serde(default)]
     pub email: String,
     pub department: AreaCode,
 }
