@@ -14,6 +14,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -58,6 +59,11 @@ public class ContentArticleController {
     @PatchMapping("/{id}/publish")
     public ArticleResponse publish(@PathVariable UUID id) throws ControllerException {
         return contentArticleService.publish(id);
+    }
+
+    @DeleteMapping("/{id}")
+    public void delete(@PathVariable UUID id) throws ControllerException {
+        contentArticleService.delete(id);
     }
 
     private ArticleSummaryResponse toSummary(Article article) {

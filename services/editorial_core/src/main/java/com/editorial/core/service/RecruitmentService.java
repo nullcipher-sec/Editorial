@@ -41,4 +41,11 @@ public class RecruitmentService {
                 candidate.getStage()
         );
     }
+
+    @Transactional
+    public void deleteCandidate(UUID id) throws ControllerException {
+        var candidate = candidateRepository.findById(id)
+                .orElseThrow(() -> new ControllerException(ErrorResponses.NOT_FOUND));
+        candidateRepository.delete(candidate);
+    }
 }

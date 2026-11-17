@@ -47,23 +47,23 @@ pub fn render_menu(frame: &mut Frame, area: Rect, app: &App) {
     let user_area = app.session.as_ref().map(|s| s.user.area);
 
     let options = [
-        ("1. Área de Atención al Cliente", AreaCode::Attention, "Gestión de clientes y registro de casos de soporte (VLAN 210)"),
-        ("2. Manejo de Contenido y Editorial", AreaCode::Production, "Redacción, revisión editorial y publicación de artículos (VLAN 220)"),
-        ("3. Recursos Humanos y Reclutamiento", AreaCode::Hr, "Consulta de empleados, vacantes y postulantes (VLAN 240 / 230)"),
-        ("4. Gestión de Eventos Literarios", AreaCode::Marketing, "Organización de ferias, lanzamientos y eventos (VLAN 250)"),
-        ("5. Cerrar Sesión (Logout)", AreaCode::Attention, "Destruir token en memoria y volver a pantalla de login"),
+        ("1. Área de Atención al Cliente", AreaCode::Attention, "Gestión de clientes y casos de soporte (VLAN 210)"),
+        ("2. Manejo de Contenido y Editorial", AreaCode::Production, "Redacción y ciclo editorial de artículos (VLAN 220)"),
+        ("3. Módulo de Reclutamiento y Selección", AreaCode::Recruitment, "Consulta de vacantes y postulantes (VLAN 230)"),
+        ("4. Módulo de Recursos Humanos", AreaCode::Hr, "Gestión de nómina y vacantes de personal (VLAN 240)"),
+        ("5. Gestión de Eventos Literarios", AreaCode::Marketing, "Organización de ferias y eventos (VLAN 250)"),
+        ("6. Cerrar Sesión (Logout)", AreaCode::Attention, "Destruir token en memoria y volver a pantalla de login"),
     ];
 
     let mut list_items = Vec::new();
     for (idx, (label, required_area, desc)) in options.iter().enumerate() {
         let is_selected = idx == app.menu_index;
-        let is_logout = idx == 4;
+        let is_logout = idx == 5;
 
         let has_permission = if is_logout {
             true
         } else if let Some(area) = user_area {
-            (*required_area == AreaCode::Hr && area == AreaCode::Recruitment)
-                || (area == *required_area)
+            area == *required_area
         } else {
             false
         };

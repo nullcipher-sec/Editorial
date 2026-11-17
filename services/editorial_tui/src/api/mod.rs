@@ -26,6 +26,11 @@ pub trait EditorialApi: Send + Sync {
         input: CreateClientInput,
     ) -> impl std::future::Future<Output = Result<Client, ApiError>> + Send;
 
+    fn delete_client(
+        &self,
+        id: Uuid,
+    ) -> impl std::future::Future<Output = Result<(), ApiError>> + Send;
+
     fn list_cases(
         &self,
         page: u32,
@@ -42,6 +47,11 @@ pub trait EditorialApi: Send + Sync {
         id: Uuid,
         status: CaseStatus,
     ) -> impl std::future::Future<Output = Result<SupportCase, ApiError>> + Send;
+
+    fn delete_case(
+        &self,
+        id: Uuid,
+    ) -> impl std::future::Future<Output = Result<(), ApiError>> + Send;
 
     fn list_articles(
         &self,
@@ -65,6 +75,11 @@ pub trait EditorialApi: Send + Sync {
         status: ArticleStatus,
     ) -> impl std::future::Future<Output = Result<Article, ApiError>> + Send;
 
+    fn delete_article(
+        &self,
+        id: Uuid,
+    ) -> impl std::future::Future<Output = Result<(), ApiError>> + Send;
+
     fn list_employees(
         &self,
         page: u32,
@@ -82,6 +97,11 @@ pub trait EditorialApi: Send + Sync {
         input: CreateJobOpeningInput,
     ) -> impl std::future::Future<Output = Result<JobOpening, ApiError>> + Send;
 
+    fn delete_job_opening(
+        &self,
+        id: Uuid,
+    ) -> impl std::future::Future<Output = Result<(), ApiError>> + Send;
+
     fn list_candidates(
         &self,
         page: u32,
@@ -93,6 +113,21 @@ pub trait EditorialApi: Send + Sync {
         input: CreateCandidateInput,
     ) -> impl std::future::Future<Output = Result<Candidate, ApiError>> + Send;
 
+    fn accept_candidate(
+        &self,
+        candidate_id: Uuid,
+    ) -> impl std::future::Future<Output = Result<Employee, ApiError>> + Send;
+
+    fn delete_employee(
+        &self,
+        employee_id: Uuid,
+    ) -> impl std::future::Future<Output = Result<(), ApiError>> + Send;
+
+    fn delete_candidate(
+        &self,
+        candidate_id: Uuid,
+    ) -> impl std::future::Future<Output = Result<(), ApiError>> + Send;
+
     fn list_events(
         &self,
         page: u32,
@@ -103,6 +138,11 @@ pub trait EditorialApi: Send + Sync {
         &self,
         input: CreateEventInput,
     ) -> impl std::future::Future<Output = Result<Event, ApiError>> + Send;
+
+    fn delete_event(
+        &self,
+        id: Uuid,
+    ) -> impl std::future::Future<Output = Result<(), ApiError>> + Send;
 }
 
 #[derive(Clone)]
@@ -129,6 +169,12 @@ impl EditorialApi for ApiBackend {
         }
     }
 
+    async fn delete_client(&self, id: Uuid) -> Result<(), ApiError> {
+        match self {
+            ApiBackend::Http(c) => c.delete_client(id).await,
+        }
+    }
+
     async fn list_cases(
         &self,
         page: u32,
@@ -152,6 +198,12 @@ impl EditorialApi for ApiBackend {
     ) -> Result<SupportCase, ApiError> {
         match self {
             ApiBackend::Http(c) => c.update_case_status(id, status).await,
+        }
+    }
+
+    async fn delete_case(&self, id: Uuid) -> Result<(), ApiError> {
+        match self {
+            ApiBackend::Http(c) => c.delete_case(id).await,
         }
     }
 
@@ -187,6 +239,12 @@ impl EditorialApi for ApiBackend {
         }
     }
 
+    async fn delete_article(&self, id: Uuid) -> Result<(), ApiError> {
+        match self {
+            ApiBackend::Http(c) => c.delete_article(id).await,
+        }
+    }
+
     async fn list_employees(
         &self,
         page: u32,
@@ -216,6 +274,12 @@ impl EditorialApi for ApiBackend {
         }
     }
 
+    async fn delete_job_opening(&self, id: Uuid) -> Result<(), ApiError> {
+        match self {
+            ApiBackend::Http(c) => c.delete_job_opening(id).await,
+        }
+    }
+
     async fn list_candidates(
         &self,
         page: u32,
@@ -232,6 +296,24 @@ impl EditorialApi for ApiBackend {
         }
     }
 
+    async fn accept_candidate(&self, candidate_id: Uuid) -> Result<Employee, ApiError> {
+        match self {
+            ApiBackend::Http(c) => c.accept_candidate(candidate_id).await,
+        }
+    }
+
+    async fn delete_employee(&self, employee_id: Uuid) -> Result<(), ApiError> {
+        match self {
+            ApiBackend::Http(c) => c.delete_employee(employee_id).await,
+        }
+    }
+
+    async fn delete_candidate(&self, candidate_id: Uuid) -> Result<(), ApiError> {
+        match self {
+            ApiBackend::Http(c) => c.delete_candidate(candidate_id).await,
+        }
+    }
+
     async fn list_events(&self, page: u32, size: u32) -> Result<PageResponse<Event>, ApiError> {
         match self {
             ApiBackend::Http(c) => c.list_events(page, size).await,
@@ -241,6 +323,12 @@ impl EditorialApi for ApiBackend {
     async fn create_event(&self, input: CreateEventInput) -> Result<Event, ApiError> {
         match self {
             ApiBackend::Http(c) => c.create_event(input).await,
+        }
+    }
+
+    async fn delete_event(&self, id: Uuid) -> Result<(), ApiError> {
+        match self {
+            ApiBackend::Http(c) => c.delete_event(id).await,
         }
     }
 }

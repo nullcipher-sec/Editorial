@@ -50,6 +50,12 @@ services:
     volumes:
       - ./db_init/db.sql:/docker-entrypoint-initdb.d/01-schema.sql:ro
       - ./db_init/seed.sql:/docker-entrypoint-initdb.d/02-seed.sql:ro
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER:-editorial} -d $${POSTGRES_DB:-editorial}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
     networks:
       red_datos:
         ipv4_address: 10.20.40.10
@@ -62,6 +68,9 @@ services:
       LDAP_ORGANISATION: Sultana del Lago
       LDAP_DOMAIN: editorial.local
       LDAP_ADMIN_PASSWORD: ${LDAP_ADMIN_PASSWORD:-admin_dev_only}
+    volumes:
+      - ldap_data:/var/lib/ldap
+      - ldap_config:/etc/ldap/slapd.d
     healthcheck:
       test: ["CMD", "ldapsearch", "-x", "-D", "cn=admin,dc=editorial,dc=local", "-w", "admin_dev_only", "-b", "ou=people,dc=editorial,dc=local", "-s", "base", "(objectClass=*)"]
       interval: 5s
@@ -93,7 +102,7 @@ services:
       - "${CORE_PORT:-8080}:8080"
     depends_on:
       postgres:
-        condition: service_started
+        condition: service_healthy
       ldap:
         condition: service_healthy
     networks:
@@ -193,3 +202,8 @@ services:
     networks:
       red_eventos: {}
       red_apps: {}
+
+volumes:
+  pgdata:
+  ldap_data:
+  ldap_config:

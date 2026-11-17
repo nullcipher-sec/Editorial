@@ -33,13 +33,13 @@ wait_for_core() {
 }
 
 start_services() {
-    compose up -d --build postgres ldap editorial_core
+    compose up -d --build postgres ldap editorial_core noticiero
     wait_for_core
 }
 
 ensure_services() {
-    if ! compose up -d --no-build postgres ldap editorial_core; then
-        compose up -d --build postgres ldap editorial_core
+    if ! compose up -d --no-build postgres ldap editorial_core noticiero; then
+        compose up -d --build postgres ldap editorial_core noticiero
     fi
     wait_for_core
 }
@@ -51,21 +51,48 @@ run_tui() {
     compose run --rm --no-deps "$service"
 }
 
+stop_services() {
+    local project="editorial-dev"
+    local running_containers
+    running_containers="$(docker ps -q --filter "label=com.docker.compose.project=$project" 2>/dev/null || true)"
+    if [ -n "$running_containers" ]; then
+        docker stop $running_containers >/dev/null 2>&1 || true
+        docker rm -f $running_containers >/dev/null 2>&1 || true
+    fi
+    compose --profile "*" down --remove-orphans
+}
+
+clean_services() {
+    local project="editorial-dev"
+    local running_containers
+    running_containers="$(docker ps -q --filter "label=com.docker.compose.project=$project" 2>/dev/null || true)"
+    if [ -n "$running_containers" ]; then
+        docker stop $running_containers >/dev/null 2>&1 || true
+        docker rm -f $running_containers >/dev/null 2>&1 || true
+    fi
+    compose --profile "*" down --remove-orphans -v
+}
+
 case "${1:-}" in
     services)
         start_services
         ;;
     stop)
-        compose down
+        stop_services
         ;;
-    tui_atencion|tui_produccion|tui_rrhh|tui_reclutamiento|tui_recluta|tui_eventos)
-        [ "$1" = "tui_recluta" ] && set -- tui_reclutamiento
-        run_tui "$1"
+    clean|reset)
+        clean_services
+        ;;
+    tui_atencion|tui.atencion|tui_produccion|tui.produccion|tui_rrhh|tui.rrhh|tui_reclutamiento|tui.reclutamiento|tui_recluta|tui.recluta|tui_eventos|tui.eventos)
+        target="${1//./_}"
+        [ "$target" = "tui_recluta" ] && target="tui_reclutamiento"
+        run_tui "$target"
         ;;
     *)
         echo "Uso:"
         echo "  ./run services"
         echo "  ./run stop"
+        echo "  ./run clean"
         echo "  ./run tui_atencion"
         echo "  ./run tui_produccion"
         echo "  ./run tui_rrhh"

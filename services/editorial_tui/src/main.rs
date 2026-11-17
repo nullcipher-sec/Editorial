@@ -1,4 +1,3 @@
-// Colapsar estos `if` en guards de `match` no compila: `check_area_access` toma `&mut app`.
 #![allow(clippy::collapsible_match)]
 
 pub mod api;
@@ -98,6 +97,7 @@ async fn handle_key_press(app: &mut App, code: KeyCode) {
         CurrentScreen::MainMenu => handle_menu_keys(app, code).await,
         CurrentScreen::Attention => handle_attention_keys(app, code).await,
         CurrentScreen::Content => handle_content_keys(app, code).await,
+        CurrentScreen::Recruitment => handle_recruitment_keys(app, code).await,
         CurrentScreen::Hr => handle_hr_keys(app, code).await,
         CurrentScreen::Events => handle_events_keys(app, code).await,
     }
@@ -155,11 +155,11 @@ async fn handle_menu_keys(app: &mut App, code: KeyCode) {
             if app.menu_index > 0 {
                 app.menu_index -= 1;
             } else {
-                app.menu_index = 4;
+                app.menu_index = 5;
             }
         }
         KeyCode::Down => {
-            if app.menu_index < 4 {
+            if app.menu_index < 5 {
                 app.menu_index += 1;
             } else {
                 app.menu_index = 0;
@@ -183,28 +183,30 @@ async fn handle_menu_keys(app: &mut App, code: KeyCode) {
                 }
             }
             2 => {
-                let user_area = app.session.as_ref().map(|s| s.user.area);
-                if user_area == Some(AreaCode::Hr) || user_area == Some(AreaCode::Recruitment) {
+                if app.check_area_access(AreaCode::Recruitment) {
+                    app.current_screen = CurrentScreen::Recruitment;
+                    app.sub_view = SubView::List1;
+                    app.list_index = 0;
+                    app.refresh_data().await;
+                }
+            }
+            3 => {
+                if app.check_area_access(AreaCode::Hr) {
                     app.current_screen = CurrentScreen::Hr;
                     app.sub_view = SubView::List1;
                     app.list_index = 0;
                     app.refresh_data().await;
-                } else {
-                    app.check_area_access(AreaCode::Hr);
                 }
             }
-            3 => {
-                let user_area = app.session.as_ref().map(|s| s.user.area);
-                if user_area == Some(AreaCode::Marketing) {
+            4 => {
+                if app.check_area_access(AreaCode::Marketing) {
                     app.current_screen = CurrentScreen::Events;
                     app.sub_view = SubView::List1;
                     app.list_index = 0;
                     app.refresh_data().await;
-                } else {
-                    app.check_area_access(AreaCode::Marketing);
                 }
             }
-            4 => {
+            5 => {
                 app.logout();
             }
             _ => {}
@@ -231,8 +233,20 @@ async fn handle_attention_keys(app: &mut App, code: KeyCode) {
             }
             KeyCode::Char('s') | KeyCode::Char('S') => {
                 if !app.cases.is_empty() && app.list_index < app.cases.len() {
+                    let current_status = app.cases[app.list_index].status;
+                    if current_status == CaseStatus::Closed {
+                        app.set_popup(
+                            PopupKind::Warning,
+                            "Este caso ya se encuentra cerrado y no puede ser modificado.".to_string(),
+                        );
+                        return;
+                    }
+                    let next_status = match current_status {
+                        CaseStatus::Open => CaseStatus::InProgress,
+                        CaseStatus::InProgress => CaseStatus::Closed,
+                        CaseStatus::Closed => CaseStatus::Closed,
+                    };
                     let case_id = app.cases[app.list_index].id;
-                    let next_status = app.cases[app.list_index].status.next();
                     match app.api.update_case_status(case_id, next_status).await {
                         Ok(upd) => {
                             app.set_popup(
@@ -250,9 +264,41 @@ async fn handle_attention_keys(app: &mut App, code: KeyCode) {
                 app.list_index = 0;
                 app.refresh_data().await;
             }
-            KeyCode::Char('n') | KeyCode::Char('N') => {
-                app.sub_view = SubView::Form2;
+            KeyCode::Char('r') | KeyCode::Char('R') => {
+                app.sub_view = SubView::Form1;
                 app.clear_inputs();
+            }
+            KeyCode::Char('n') | KeyCode::Char('N') => {
+                if app.clients.is_empty() {
+                    app.sub_view = SubView::Form1;
+                    app.clear_inputs();
+                    app.set_popup(
+                        PopupKind::Info,
+                        "No hay clientes registrados aún. Complete este formulario para registrar el primer cliente.".to_string(),
+                    );
+                } else {
+                    app.sub_view = SubView::Form2;
+                    app.clear_inputs();
+                }
+            }
+            KeyCode::Char('d') | KeyCode::Char('D') => {
+                if !app.cases.is_empty() && app.list_index < app.cases.len() {
+                    let case_id = app.cases[app.list_index].id;
+                    let subject = app.cases[app.list_index].subject.clone();
+                    match app.api.delete_case(case_id).await {
+                        Ok(_) => {
+                            app.set_popup(
+                                PopupKind::Success,
+                                format!("Caso de soporte '{}' eliminado exitosamente.", subject),
+                            );
+                            if app.list_index > 0 && app.list_index >= app.cases.len() - 1 {
+                                app.list_index -= 1;
+                            }
+                            app.refresh_data().await;
+                        }
+                        Err(e) => app.handle_api_error(e),
+                    }
+                }
             }
             KeyCode::Esc => {
                 app.current_screen = CurrentScreen::MainMenu;
@@ -273,6 +319,25 @@ async fn handle_attention_keys(app: &mut App, code: KeyCode) {
             KeyCode::Char('r') | KeyCode::Char('R') => {
                 app.sub_view = SubView::Form1;
                 app.clear_inputs();
+            }
+            KeyCode::Char('d') | KeyCode::Char('D') => {
+                if !app.clients.is_empty() && app.list_index < app.clients.len() {
+                    let client_id = app.clients[app.list_index].id;
+                    let name = app.clients[app.list_index].full_name.clone();
+                    match app.api.delete_client(client_id).await {
+                        Ok(_) => {
+                            app.set_popup(
+                                PopupKind::Success,
+                                format!("Cliente '{}' eliminado exitosamente del directorio.", name),
+                            );
+                            if app.list_index > 0 && app.list_index >= app.clients.len() - 1 {
+                                app.list_index -= 1;
+                            }
+                            app.refresh_data().await;
+                        }
+                        Err(e) => app.handle_api_error(e),
+                    }
+                }
             }
             KeyCode::Char('v') | KeyCode::Char('V') | KeyCode::Esc => {
                 app.sub_view = SubView::List1;
@@ -301,18 +366,36 @@ async fn handle_attention_keys(app: &mut App, code: KeyCode) {
                 }
             },
             KeyCode::Enter => {
+                let name = app.input_1.trim().to_string();
+                if name.len() < 3 {
+                    app.set_popup(
+                        PopupKind::Warning,
+                        "El nombre o razón social debe tener al menos 3 caracteres.".to_string(),
+                    );
+                    return;
+                }
+                let email = if app.input_2.trim().is_empty() {
+                    None
+                } else {
+                    let em = app.input_2.trim().to_string();
+                    if !em.contains('@') || !em.contains('.') {
+                        app.set_popup(
+                            PopupKind::Warning,
+                            "El correo electrónico no tiene un formato válido (ej. cliente@dominio.com).".to_string(),
+                        );
+                        return;
+                    }
+                    Some(em)
+                };
+                let phone = if app.input_3.trim().is_empty() {
+                    None
+                } else {
+                    Some(app.input_3.trim().to_string())
+                };
                 let input = CreateClientInput {
-                    full_name: app.input_1.clone(),
-                    email: if app.input_2.is_empty() {
-                        None
-                    } else {
-                        Some(app.input_2.clone())
-                    },
-                    phone: if app.input_3.is_empty() {
-                        None
-                    } else {
-                        Some(app.input_3.clone())
-                    },
+                    full_name: name,
+                    email,
+                    phone,
                 };
                 match app.api.create_client(input).await {
                     Ok(cl) => {
@@ -357,10 +440,26 @@ async fn handle_attention_keys(app: &mut App, code: KeyCode) {
                     );
                     return;
                 };
+                let subject = app.input_1.trim().to_string();
+                if subject.len() < 5 {
+                    app.set_popup(
+                        PopupKind::Warning,
+                        "El asunto del caso debe tener al menos 5 caracteres.".to_string(),
+                    );
+                    return;
+                }
+                let description = app.input_2.trim().to_string();
+                if description.len() < 10 {
+                    app.set_popup(
+                        PopupKind::Warning,
+                        "La descripción del caso debe tener al menos 10 caracteres.".to_string(),
+                    );
+                    return;
+                }
                 let input = CreateCaseInput {
                     client_id: client.id,
-                    subject: app.input_1.clone(),
-                    description: app.input_2.clone(),
+                    subject,
+                    description,
                 };
                 match app.api.create_case(input).await {
                     Ok(cs) => {
@@ -416,6 +515,14 @@ async fn handle_content_keys(app: &mut App, code: KeyCode) {
             }
             KeyCode::Char('r') | KeyCode::Char('R') => {
                 if !app.articles.is_empty() && app.list_index < app.articles.len() {
+                    let current_status = app.articles[app.list_index].status;
+                    if current_status != ArticleStatus::Draft {
+                        app.set_popup(
+                            PopupKind::Warning,
+                            "Solo los artículos en estado 'Borrador' pueden enviarse a revisión editorial.".to_string(),
+                        );
+                        return;
+                    }
                     let article_id = app.articles[app.list_index].id;
                     match app
                         .api
@@ -435,6 +542,21 @@ async fn handle_content_keys(app: &mut App, code: KeyCode) {
             }
             KeyCode::Char('p') | KeyCode::Char('P') => {
                 if !app.articles.is_empty() && app.list_index < app.articles.len() {
+                    let current_status = app.articles[app.list_index].status;
+                    if current_status != ArticleStatus::Review {
+                        if current_status == ArticleStatus::Published {
+                            app.set_popup(
+                                PopupKind::Warning,
+                                "Este artículo ya fue publicado definitivamente en el Noticiero web.".to_string(),
+                            );
+                        } else {
+                            app.set_popup(
+                                PopupKind::Warning,
+                                "El artículo debe estar en estado 'En Revisión' antes de ser publicado.".to_string(),
+                            );
+                        }
+                        return;
+                    }
                     let article_id = app.articles[app.list_index].id;
                     match app
                         .api
@@ -452,6 +574,25 @@ async fn handle_content_keys(app: &mut App, code: KeyCode) {
                     }
                 }
             }
+            KeyCode::Char('d') | KeyCode::Char('D') => {
+                if !app.articles.is_empty() && app.list_index < app.articles.len() {
+                    let article_id = app.articles[app.list_index].id;
+                    let article_title = app.articles[app.list_index].title.clone();
+                    match app.api.delete_article(article_id).await {
+                        Ok(_) => {
+                            app.set_popup(
+                                PopupKind::Success,
+                                format!("Artículo '{}' eliminado exitosamente.", article_title),
+                            );
+                            if app.list_index > 0 && app.list_index >= app.articles.len() - 1 {
+                                app.list_index -= 1;
+                            }
+                            app.refresh_data().await;
+                        }
+                        Err(e) => app.handle_api_error(e),
+                    }
+                }
+            }
             KeyCode::Esc => {
                 app.current_screen = CurrentScreen::MainMenu;
             }
@@ -460,6 +601,26 @@ async fn handle_content_keys(app: &mut App, code: KeyCode) {
         SubView::Detail => {
             if matches!(code, KeyCode::Esc | KeyCode::Enter) {
                 app.sub_view = SubView::List1;
+            } else if matches!(code, KeyCode::Char('d') | KeyCode::Char('D')) {
+                if let Some(article) = &app.selected_article {
+                    let article_id = article.id;
+                    let article_title = article.title.clone();
+                    match app.api.delete_article(article_id).await {
+                        Ok(_) => {
+                            app.selected_article = None;
+                            app.set_popup(
+                                PopupKind::Success,
+                                format!("Artículo '{}' eliminado exitosamente.", article_title),
+                            );
+                            app.sub_view = SubView::List1;
+                            if app.list_index > 0 && app.list_index >= app.articles.len() - 1 {
+                                app.list_index -= 1;
+                            }
+                            app.refresh_data().await;
+                        }
+                        Err(e) => app.handle_api_error(e),
+                    }
+                }
             }
         }
         SubView::Form1 => match code {
@@ -483,14 +644,31 @@ async fn handle_content_keys(app: &mut App, code: KeyCode) {
                 }
             },
             KeyCode::Enter => {
+                let title = app.input_1.trim().to_string();
+                if title.len() < 5 {
+                    app.set_popup(
+                        PopupKind::Warning,
+                        "El título del artículo debe tener al menos 5 caracteres.".to_string(),
+                    );
+                    return;
+                }
+                let body = app.input_3.trim().to_string();
+                if body.len() < 20 {
+                    app.set_popup(
+                        PopupKind::Warning,
+                        "El cuerpo completo del artículo debe tener al menos 20 caracteres.".to_string(),
+                    );
+                    return;
+                }
+                let summary = if app.input_2.trim().is_empty() {
+                    None
+                } else {
+                    Some(app.input_2.trim().to_string())
+                };
                 let input = CreateArticleInput {
-                    title: app.input_1.clone(),
-                    summary: if app.input_2.is_empty() {
-                        None
-                    } else {
-                        Some(app.input_2.clone())
-                    },
-                    body: app.input_3.clone(),
+                    title,
+                    summary,
+                    body,
                 };
                 match app.api.create_article(input).await {
                     Ok(art) => {
@@ -538,6 +716,25 @@ async fn handle_hr_keys(app: &mut App, code: KeyCode) {
                 app.list_index = 0;
                 app.refresh_data().await;
             }
+            KeyCode::Char('d') | KeyCode::Char('D') => {
+                if !app.employees.is_empty() && app.list_index < app.employees.len() {
+                    let emp_id = app.employees[app.list_index].id;
+                    let emp_name = app.employees[app.list_index].full_name.clone();
+                    match app.api.delete_employee(emp_id).await {
+                        Ok(_) => {
+                            app.set_popup(
+                                PopupKind::Success,
+                                format!("Empleado '{}' eliminado del puesto exitosamente.", emp_name),
+                            );
+                            if app.list_index > 0 && app.list_index >= app.employees.len() - 1 {
+                                app.list_index -= 1;
+                            }
+                            app.refresh_data().await;
+                        }
+                        Err(e) => app.handle_api_error(e),
+                    }
+                }
+            }
             KeyCode::Esc => {
                 app.current_screen = CurrentScreen::MainMenu;
             }
@@ -558,6 +755,30 @@ async fn handle_hr_keys(app: &mut App, code: KeyCode) {
                 app.sub_view = SubView::Form1;
                 app.clear_inputs();
             }
+            KeyCode::Char('d') | KeyCode::Char('D') => {
+                if !app.openings.is_empty() && app.list_index < app.openings.len() {
+                    let opening_id = app.openings[app.list_index].id;
+                    let title = app.openings[app.list_index].title.clone();
+                    match app.api.delete_job_opening(opening_id).await {
+                        Ok(_) => {
+                            app.set_popup(
+                                PopupKind::Success,
+                                format!("Vacante '{}' eliminada exitosamente.", title),
+                            );
+                            if app.list_index > 0 && app.list_index >= app.openings.len() - 1 {
+                                app.list_index -= 1;
+                            }
+                            app.refresh_data().await;
+                        }
+                        Err(e) => app.handle_api_error(e),
+                    }
+                }
+            }
+            KeyCode::Char('c') | KeyCode::Char('C') => {
+                app.sub_view = SubView::List3;
+                app.list_index = 0;
+                app.refresh_data().await;
+            }
             KeyCode::Char('e') | KeyCode::Char('E') | KeyCode::Esc => {
                 app.sub_view = SubView::List1;
                 app.list_index = 0;
@@ -575,12 +796,59 @@ async fn handle_hr_keys(app: &mut App, code: KeyCode) {
                     app.list_index += 1;
                 }
             }
-            KeyCode::Char('p') | KeyCode::Char('P') => {
-                app.sub_view = SubView::Form2;
-                app.clear_inputs();
+            KeyCode::Char('a') | KeyCode::Char('A') | KeyCode::Enter => {
+                if !app.candidates.is_empty() && app.list_index < app.candidates.len() {
+                    let cand = &app.candidates[app.list_index];
+                    let is_hired = cand.stage.to_uppercase() == "HIRED" || cand.stage.to_uppercase() == "CONTRATADO";
+                    if is_hired {
+                        app.set_popup(
+                            PopupKind::Warning,
+                            "Este candidato ya fue aceptado y forma parte del personal fijo.".to_string(),
+                        );
+                    } else {
+                        let cand_id = cand.id;
+                        let cand_name = cand.full_name.clone();
+                        match app.api.accept_candidate(cand_id).await {
+                            Ok(emp) => {
+                                app.set_popup(
+                                    PopupKind::Success,
+                                    format!(
+                                        "Candidato '{}' aceptado exitosamente. Ahora es personal fijo con código {}.",
+                                        cand_name, emp.employee_code
+                                    ),
+                                );
+                                app.refresh_data().await;
+                            }
+                            Err(e) => app.handle_api_error(e),
+                        }
+                    }
+                }
             }
             KeyCode::Char('e') | KeyCode::Char('E') | KeyCode::Esc => {
                 app.sub_view = SubView::List1;
+                app.list_index = 0;
+            }
+            KeyCode::Char('d') | KeyCode::Char('D') => {
+                if !app.candidates.is_empty() && app.list_index < app.candidates.len() {
+                    let cand_id = app.candidates[app.list_index].id;
+                    let cand_name = app.candidates[app.list_index].full_name.clone();
+                    match app.api.delete_candidate(cand_id).await {
+                        Ok(_) => {
+                            app.set_popup(
+                                PopupKind::Success,
+                                format!("Postulante '{}' eliminado del puesto exitosamente.", cand_name),
+                            );
+                            if app.list_index > 0 && app.list_index >= app.candidates.len() - 1 {
+                                app.list_index -= 1;
+                            }
+                            app.refresh_data().await;
+                        }
+                        Err(e) => app.handle_api_error(e),
+                    }
+                }
+            }
+            KeyCode::Char('v') | KeyCode::Char('V') => {
+                app.sub_view = SubView::List2;
                 app.list_index = 0;
             }
             _ => {}
@@ -611,7 +879,7 @@ async fn handle_hr_keys(app: &mut App, code: KeyCode) {
                     Ok(jo) => {
                         app.set_popup(
                             PopupKind::Success,
-                            format!("Vacante '{}' publicada.", jo.title),
+                            format!("Vacante '{}' publicada exitosamente.", jo.title),
                         );
                         app.sub_view = SubView::List2;
                         app.clear_inputs();
@@ -626,27 +894,131 @@ async fn handle_hr_keys(app: &mut App, code: KeyCode) {
             }
             _ => {}
         },
-        SubView::Form2 => match code {
+        _ => {}
+    }
+}
+
+async fn handle_recruitment_keys(app: &mut App, code: KeyCode) {
+    match app.sub_view {
+        SubView::List1 => match code {
+            KeyCode::Up => {
+                if app.list_index > 0 {
+                    app.list_index -= 1;
+                }
+            }
+            KeyCode::Down => {
+                if !app.candidates.is_empty() && app.list_index < app.candidates.len() - 1 {
+                    app.list_index += 1;
+                }
+            }
+            KeyCode::Char('p') | KeyCode::Char('P') => {
+                let open_opening = app.openings.iter().find(|o| o.open).cloned();
+                match open_opening {
+                    Some(op) => {
+                        app.selected_opening = Some(op);
+                        app.sub_view = SubView::Form1;
+                        app.clear_inputs();
+                    }
+                    None => {
+                        app.set_popup(
+                            PopupKind::Warning,
+                            "No existen vacantes abiertas registradas para postular candidatos. Recursos Humanos debe crear una vacante primero.".to_string(),
+                        );
+                    }
+                }
+            }
+            KeyCode::Char('d') | KeyCode::Char('D') => {
+                if !app.candidates.is_empty() && app.list_index < app.candidates.len() {
+                    let cand_id = app.candidates[app.list_index].id;
+                    let name = app.candidates[app.list_index].full_name.clone();
+                    match app.api.delete_candidate(cand_id).await {
+                        Ok(_) => {
+                            app.set_popup(
+                                PopupKind::Success,
+                                format!("Candidato '{}' retirado exitosamente del proceso.", name),
+                            );
+                            if app.list_index > 0 && app.list_index >= app.candidates.len() - 1 {
+                                app.list_index -= 1;
+                            }
+                            app.refresh_data().await;
+                        }
+                        Err(e) => app.handle_api_error(e),
+                    }
+                }
+            }
+            KeyCode::Char('v') | KeyCode::Char('V') => {
+                app.sub_view = SubView::List2;
+                app.list_index = 0;
+                app.refresh_data().await;
+            }
+            KeyCode::Esc => {
+                app.current_screen = CurrentScreen::MainMenu;
+            }
+            _ => {}
+        },
+        SubView::List2 => match code {
+            KeyCode::Up => {
+                if app.list_index > 0 {
+                    app.list_index -= 1;
+                }
+            }
+            KeyCode::Down => {
+                if !app.openings.is_empty() && app.list_index < app.openings.len() - 1 {
+                    app.list_index += 1;
+                }
+            }
+            KeyCode::Char('p') | KeyCode::Char('P') | KeyCode::Enter => {
+                if !app.openings.is_empty() && app.list_index < app.openings.len() {
+                    let op = &app.openings[app.list_index];
+                    if !op.open {
+                        app.set_popup(
+                            PopupKind::Warning,
+                            "La vacante seleccionada está cerrada. Solo puede agregar candidatos a vacantes abiertas.".to_string(),
+                        );
+                    } else {
+                        app.selected_opening = Some(op.clone());
+                        app.sub_view = SubView::Form1;
+                        app.clear_inputs();
+                    }
+                }
+            }
+            KeyCode::Char('n') | KeyCode::Char('N') => {
+                app.set_popup(
+                    PopupKind::Warning,
+                    "Permiso denegado: El área de Reclutamiento solo puede consultar vacantes y agregar candidatos a ellas. La apertura de vacantes corresponde a Recursos Humanos (VLAN 240).".to_string(),
+                );
+            }
+            KeyCode::Char('c') | KeyCode::Char('C') | KeyCode::Esc => {
+                app.sub_view = SubView::List1;
+                app.list_index = 0;
+            }
+            _ => {}
+        },
+        SubView::Form1 => match code {
             KeyCode::Tab => {
-                app.active_field = (app.active_field + 1) % 2;
+                app.active_field = (app.active_field + 1) % 3;
             }
             KeyCode::Char(c) => match app.active_field {
                 0 => app.input_1.push(c),
-                _ => app.input_2.push(c),
+                1 => app.input_2.push(c),
+                _ => app.input_3.push(c),
             },
             KeyCode::Backspace => match app.active_field {
                 0 => {
                     app.input_1.pop();
                 }
-                _ => {
+                1 => {
                     app.input_2.pop();
+                }
+                _ => {
+                    app.input_3.pop();
                 }
             },
             KeyCode::Enter => {
-                let Some(opening) = app.openings.first() else {
+                let Some(opening) = app.selected_opening.clone().or_else(|| app.openings.iter().find(|o| o.open).cloned()) else {
                     app.set_popup(
                         PopupKind::Warning,
-                        "No hay vacantes cargadas para asociar el candidato.".to_string(),
+                        "Debe seleccionar una vacante abierta para postular al candidato.".to_string(),
                     );
                     return;
                 };
@@ -654,15 +1026,19 @@ async fn handle_hr_keys(app: &mut App, code: KeyCode) {
                     job_opening_id: opening.id,
                     full_name: app.input_1.clone(),
                     email: app.input_2.clone(),
-                    resume_summary: None,
+                    resume_summary: if app.input_3.is_empty() {
+                        None
+                    } else {
+                        Some(app.input_3.clone())
+                    },
                 };
                 match app.api.create_candidate(input).await {
                     Ok(cand) => {
                         app.set_popup(
                             PopupKind::Success,
-                            format!("Candidato '{}' registrado.", cand.full_name),
+                            format!("Candidato '{}' agregado exitosamente a la vacante '{}'.", cand.full_name, opening.title),
                         );
-                        app.sub_view = SubView::List3;
+                        app.sub_view = SubView::List1;
                         app.clear_inputs();
                         app.refresh_data().await;
                     }
@@ -670,7 +1046,7 @@ async fn handle_hr_keys(app: &mut App, code: KeyCode) {
                 }
             }
             KeyCode::Esc => {
-                app.sub_view = SubView::List3;
+                app.sub_view = SubView::List1;
                 app.clear_inputs();
             }
             _ => {}
@@ -695,6 +1071,25 @@ async fn handle_events_keys(app: &mut App, code: KeyCode) {
             KeyCode::Char('n') | KeyCode::Char('N') => {
                 app.sub_view = SubView::Form1;
                 app.clear_inputs();
+            }
+            KeyCode::Char('d') | KeyCode::Char('D') => {
+                if !app.events.is_empty() && app.list_index < app.events.len() {
+                    let event_id = app.events[app.list_index].id;
+                    let name = app.events[app.list_index].name.clone();
+                    match app.api.delete_event(event_id).await {
+                        Ok(_) => {
+                            app.set_popup(
+                                PopupKind::Success,
+                                format!("Evento '{}' cancelado y eliminado exitosamente.", name),
+                            );
+                            if app.list_index > 0 && app.list_index >= app.events.len() - 1 {
+                                app.list_index -= 1;
+                            }
+                            app.refresh_data().await;
+                        }
+                        Err(e) => app.handle_api_error(e),
+                    }
+                }
             }
             KeyCode::Esc => {
                 app.current_screen = CurrentScreen::MainMenu;
@@ -765,6 +1160,8 @@ async fn handle_events_keys(app: &mut App, code: KeyCode) {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use auth::{AuthToken, Session};
+    use uuid::Uuid;
     use validator::Validate;
 
     #[tokio::test]
@@ -787,7 +1184,7 @@ mod tests {
     #[test]
     fn test_api_request_payloads_use_core_field_names() {
         let case_json = serde_json::to_value(CreateCaseInput {
-            client_id: uuid::Uuid::nil(),
+            client_id: Uuid::nil(),
             subject: "Caso de prueba".to_string(),
             description: "Descripción válida del caso".to_string(),
         })
@@ -796,7 +1193,7 @@ mod tests {
         assert!(case_json.get("client_id").is_none());
 
         let candidate_json = serde_json::to_value(CreateCandidateInput {
-            job_opening_id: uuid::Uuid::nil(),
+            job_opening_id: Uuid::nil(),
             full_name: "Candidato de Prueba".to_string(),
             email: "candidato@example.com".to_string(),
             resume_summary: None,
@@ -816,5 +1213,115 @@ mod tests {
         .unwrap();
         assert!(event_json.get("startsAt").is_some());
         assert!(event_json.get("starts_at").is_none());
+    }
+
+    #[test]
+    fn test_rbac_strictly_separates_hr_and_recruitment() {
+        let hr_user = AppUser {
+            id: Uuid::new_v4(),
+            ldap_uid: "rrhh.gerente".to_string(),
+            display_name: "Gerente RRHH".to_string(),
+            area: AreaCode::Hr,
+        };
+        let mut app_hr = App::new(AppConfig {
+            core_api_url: "http://localhost:8080".to_string(),
+            terminal_area: Some(AreaCode::Hr),
+        });
+        app_hr.session = Some(Session {
+            user: hr_user,
+            token: Some(AuthToken {
+                value: "mock_token".to_string(),
+            }),
+        });
+
+        assert!(app_hr.check_area_access(AreaCode::Hr));
+        assert!(!app_hr.check_area_access(AreaCode::Recruitment));
+        assert!(!app_hr.check_area_access(AreaCode::Attention));
+        assert!(!app_hr.check_area_access(AreaCode::Production));
+        assert!(!app_hr.check_area_access(AreaCode::Marketing));
+
+        let recruit_user = AppUser {
+            id: Uuid::new_v4(),
+            ldap_uid: "recluta.especialista".to_string(),
+            display_name: "Especialista Reclutamiento".to_string(),
+            area: AreaCode::Recruitment,
+        };
+        let mut app_recruit = App::new(AppConfig {
+            core_api_url: "http://localhost:8080".to_string(),
+            terminal_area: Some(AreaCode::Recruitment),
+        });
+        app_recruit.session = Some(Session {
+            user: recruit_user,
+            token: Some(AuthToken {
+                value: "mock_token".to_string(),
+            }),
+        });
+
+        assert!(app_recruit.check_area_access(AreaCode::Recruitment));
+        assert!(!app_recruit.check_area_access(AreaCode::Hr));
+        assert!(!app_recruit.check_area_access(AreaCode::Attention));
+        assert!(!app_recruit.check_area_access(AreaCode::Production));
+        assert!(!app_recruit.check_area_access(AreaCode::Marketing));
+    }
+
+    #[test]
+    fn test_case_status_terminal_closed_state() {
+        let open_status = CaseStatus::Open;
+        assert_eq!(open_status.next(), CaseStatus::InProgress);
+
+        let progress_status = CaseStatus::InProgress;
+        assert_eq!(progress_status.next(), CaseStatus::Closed);
+    }
+
+    #[test]
+    fn test_candidate_and_employee_serialization() {
+        let candidate_raw = serde_json::json!({
+            "id": "11111111-1111-1111-1111-111111111111",
+            "jobOpeningId": "22222222-2222-2222-2222-222222222222",
+            "fullName": "Carlos Silva",
+            "stage": "APPLIED"
+        });
+        let candidate: Candidate = serde_json::from_value(candidate_raw).unwrap();
+        assert_eq!(candidate.full_name, "Carlos Silva");
+        assert_eq!(candidate.stage, "APPLIED");
+
+        let employee_raw = serde_json::json!({
+            "id": "33333333-3333-3333-3333-333333333333",
+            "employeeCode": "E-001",
+            "fullName": "Carlos Silva",
+            "department": "PRODUCTION",
+            "active": true
+        });
+        let employee: Employee = serde_json::from_value(employee_raw).unwrap();
+        assert_eq!(employee.employee_code, "E-001");
+        assert_eq!(employee.department, AreaCode::Production);
+    }
+
+    #[test]
+    fn test_article_and_case_serialization() {
+        let article_raw = serde_json::json!({
+            "id": "11111111-1111-1111-1111-111111111111",
+            "title": "Titulo de prueba",
+            "summary": null,
+            "body": "Cuerpo con mas de veinte caracteres...",
+            "status": "DRAFT",
+            "authorId": "22222222-2222-2222-2222-222222222222",
+            "publishedAt": null
+        });
+        let article: Article = serde_json::from_value(article_raw).unwrap();
+        assert_eq!(article.status, ArticleStatus::Draft);
+        assert!(article.summary.is_none());
+        assert!(article.published_at.is_none());
+
+        let case_raw = serde_json::json!({
+            "id": "11111111-1111-1111-1111-111111111111",
+            "clientId": "22222222-2222-2222-2222-222222222222",
+            "subject": "Caso de prueba",
+            "status": "OPEN"
+        });
+        let case: SupportCase = serde_json::from_value(case_raw).unwrap();
+        assert_eq!(case.status, CaseStatus::Open);
+        assert!(case.description.is_none());
+        assert!(case.assigned_to.is_none());
     }
 }

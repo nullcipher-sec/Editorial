@@ -10,6 +10,7 @@ pub enum CurrentScreen {
     MainMenu,
     Attention,
     Content,
+    Recruitment,
     Hr,
     Events,
 }
@@ -46,6 +47,7 @@ pub struct App {
     pub cases: Vec<SupportCase>,
     pub articles: Vec<ArticleSummary>,
     pub selected_article: Option<Article>,
+    pub selected_opening: Option<JobOpening>,
     pub employees: Vec<Employee>,
     pub openings: Vec<JobOpening>,
     pub candidates: Vec<Candidate>,
@@ -78,6 +80,7 @@ impl App {
             cases: Vec::new(),
             articles: Vec::new(),
             selected_article: None,
+            selected_opening: None,
             employees: Vec::new(),
             openings: Vec::new(),
             candidates: Vec::new(),
@@ -125,6 +128,14 @@ impl App {
             CurrentScreen::Content => {
                 if let Ok(a) = self.api.list_articles(0, 50).await {
                     self.articles = a.content;
+                }
+            }
+            CurrentScreen::Recruitment => {
+                if let Ok(cand) = self.api.list_candidates(0, 50).await {
+                    self.candidates = cand.content;
+                }
+                if let Ok(o) = self.api.list_job_openings(0, 50).await {
+                    self.openings = o.content;
                 }
             }
             CurrentScreen::Hr => {
