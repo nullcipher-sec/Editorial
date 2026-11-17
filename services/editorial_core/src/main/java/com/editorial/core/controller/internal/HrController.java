@@ -76,6 +76,7 @@ public class HrController {
         hrService.deleteEmployee(id);
     }
 
+    @PreAuthorize("hasAnyAuthority('ROLE_HR', 'ROLE_RECRUITMENT')")
     @DeleteMapping("/candidates/{id}")
     public void deleteCandidate(@PathVariable UUID id) throws ControllerException {
         hrService.deleteCandidate(id);
