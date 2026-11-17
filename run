@@ -73,6 +73,70 @@ clean_services() {
     compose --profile "*" down --remove-orphans -v
 }
 
+ldap_admin() {
+    compose exec -T ldap "$@" -x -D "cn=admin,dc=editorial,dc=local" -w "${LDAP_ADMIN_PASSWORD:-admin_dev_only}"
+}
+
+# ./run user <usuario> "<Nombre Apellido>" <AREA> [clave]
+user_add() {
+    local uid="${1:-}" name="${2:-}" area="${3:-}" pass="${4:-EditorialDev!2026}" gid next found
+    if [ -z "$uid" ] || [ -z "$name" ] || [ -z "$area" ]; then
+        echo 'Uso: ./run user <usuario> "<Nombre Apellido>" <AREA> [clave]' >&2
+        echo "AREA: ATTENTION | PRODUCTION | RECRUITMENT | HR | MARKETING" >&2
+        return 1
+    fi
+    case "$(echo "$area" | tr '[:lower:]' '[:upper:]')" in
+        ATTENTION) area=ATTENTION; gid=2100 ;;
+        PRODUCTION) area=PRODUCTION; gid=2200 ;;
+        RECRUITMENT) area=RECRUITMENT; gid=2300 ;;
+        HR) area=HR; gid=2400 ;;
+        MARKETING) area=MARKETING; gid=2500 ;;
+        *) echo "ERROR: área inválida '$area'." >&2; return 1 ;;
+    esac
+    if ! compose ps --status running --services 2>/dev/null | grep -qx ldap; then
+        echo "ERROR: LDAP no está corriendo. Ejecuta primero: ./run services" >&2
+        return 1
+    fi
+    found="$(ldap_admin ldapsearch -b "ou=people,dc=editorial,dc=local" "(uid=$uid)" uid 2>/dev/null || true)"
+    if [[ "$found" == *"uid: $uid"* ]]; then
+        echo "ERROR: el usuario '$uid' ya existe." >&2
+        return 1
+    fi
+    next="$(ldap_admin ldapsearch -b "ou=people,dc=editorial,dc=local" "(uidNumber=*)" uidNumber 2>/dev/null \
+        | awk '/^uidNumber:/ { if ($2 > m) m = $2 } END { print (m < 10099 ? 10100 : m + 1) }')"
+    ldap_admin ldapadd >/dev/null <<LDIF
+dn: uid=$uid,ou=people,dc=editorial,dc=local
+objectClass: inetOrgPerson
+objectClass: posixAccount
+uid: $uid
+cn: $name
+sn: ${name##* }
+uidNumber: $next
+gidNumber: $gid
+homeDirectory: /home/$uid
+mail: $uid@editorial.local
+userPassword: $pass
+LDIF
+    echo "Usuario '$uid' creado en el área $area."
+    echo "  Contraseña: $pass"
+    echo "  Ya puede iniciar sesión (el Core registra su perfil en el primer login)."
+}
+
+# ./run user-del <usuario>
+user_del() {
+    local uid="${1:-}"
+    [ -n "$uid" ] || { echo "Uso: ./run user-del <usuario>" >&2; return 1; }
+    ldap_admin ldapdelete "uid=$uid,ou=people,dc=editorial,dc=local"
+    compose exec -T postgres psql -U "${POSTGRES_USER:-editorial}" -d "${POSTGRES_DB:-editorial}" -qc \
+        "DELETE FROM app_user WHERE ldap_uid='$uid'" >/dev/null 2>&1 || true
+    echo "Usuario '$uid' eliminado."
+}
+
+list_users() {
+    ldap_admin ldapsearch -b "ou=people,dc=editorial,dc=local" "(uid=*)" uid gidNumber 2>/dev/null \
+        | awk '/^uid:/ {u=$2} /^gidNumber:/ {print u "  (gid " $2 ")"}'
+}
+
 case "${1:-}" in
     services)
         start_services
@@ -82,6 +146,17 @@ case "${1:-}" in
         ;;
     clean|reset)
         clean_services
+        ;;
+    user)
+        shift
+        user_add "$@"
+        ;;
+    user-del)
+        shift
+        user_del "$@"
+        ;;
+    users)
+        list_users
         ;;
     tui_atencion|tui.atencion|tui_produccion|tui.produccion|tui_rrhh|tui.rrhh|tui_reclutamiento|tui.reclutamiento|tui_recluta|tui.recluta|tui_eventos|tui.eventos)
         target="${1//./_}"
@@ -93,6 +168,9 @@ case "${1:-}" in
         echo "  ./run services"
         echo "  ./run stop"
         echo "  ./run clean"
+        echo '  ./run user <usuario> "<Nombre Apellido>" <AREA> [clave]'
+        echo "  ./run user-del <usuario>"
+        echo "  ./run users"
         echo "  ./run tui_atencion"
         echo "  ./run tui_produccion"
         echo "  ./run tui_rrhh"

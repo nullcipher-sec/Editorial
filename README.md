@@ -162,6 +162,17 @@ Inicia sesión con el usuario del área. Contraseña de todos: `EditorialDev!202
 
 Teclas: `Tab` cambia de campo, `Enter` acepta, `Esc` vuelve, `Q` sale.
 
+### Crear un usuario nuevo
+
+```bash
+./run user ana.torres "Ana Torres" MARKETING     # áreas: ATTENTION, PRODUCTION, RECRUITMENT, HR, MARKETING
+./run users                                      # listar usuarios
+./run user-del ana.torres                        # eliminar
+```
+
+La clave por defecto es `EditorialDev!2026` (o pásala como cuarto argumento). Solo se administra LDAP: el perfil
+interno se crea solo en el primer login. Requiere el sistema levantado.
+
 ### 3. Apagar
 
 ```bash

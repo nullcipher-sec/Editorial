@@ -77,32 +77,22 @@ Contraseña para todos: `EditorialDev!2026`.
 
 ### Crear un usuario nuevo
 
-Solo se administra **LDAP**; el Core crea o actualiza el registro interno (`app_user`) en el primer login
-a partir del `cn` (nombre) y del grupo del usuario (`gidNumber` → grupo en `ou=groups`).
-
-Grupos/áreas: `ATTENTION` 2100, `PRODUCTION` 2200, `RECRUITMENT` 2300, `HR` 2400, `MARKETING` 2500.
+Con el sistema levantado, un solo comando desde la raíz del repo:
 
 ```bash
-cat > nuevo.ldif <<'EOF'
-dn: uid=nuevo.usuario,ou=people,dc=editorial,dc=local
-objectClass: inetOrgPerson
-objectClass: posixAccount
-uid: nuevo.usuario
-cn: Nombre Apellido
-sn: Apellido
-uidNumber: 10100
-gidNumber: 2500
-homeDirectory: /home/nuevo.usuario
-mail: nuevo.usuario@editorial.local
-userPassword: MiClave!2026
-EOF
-docker compose cp nuevo.ldif ldap:/tmp/nuevo.ldif
-docker compose exec -T ldap ldapadd -x -D "cn=admin,dc=editorial,dc=local" -w admin_dev_only -f /tmp/nuevo.ldif
+./run user <usuario> "<Nombre Apellido>" <AREA> [clave]
+
+./run user ana.torres "Ana Torres" MARKETING            # clave por defecto: EditorialDev!2026
+./run user pedro.perez "Pedro Pérez" PRODUCTION "MiClave!2026"
 ```
 
-Cada usuario necesita un `uidNumber` distinto (los de prueba usan 10001–10005). Para cambiarlo de área, modifica su
-`gidNumber` en LDAP (`ldapmodify`); se aplica en su siguiente login. Sin grupo válido el login responde 403.
-Para dejarlo como usuario de ejemplo permanente, añade el bloque a `deploy/ldap/bootstrap.ldif` y reinicia con `docker compose down -v`.
+`AREA`: `ATTENTION`, `PRODUCTION`, `RECRUITMENT`, `HR` o `MARKETING`. El comando lo crea en LDAP; el Core registra su
+perfil interno (`app_user`) automáticamente en el primer login, así que no hay que tocar PostgreSQL.
+
+Otros comandos: `./run users` (lista los usuarios), `./run user-del <usuario>` (lo elimina).
+Para cambiar a alguien de área, modifica su `gidNumber` en LDAP (`ldapmodify`); se aplica en su siguiente login.
+Sin grupo de área válido el login responde 403. Para dejarlo como usuario de ejemplo permanente, añade su bloque
+(sin sangría: las líneas de un `.ldif` no deben empezar con espacios) a `deploy/ldap/bootstrap.ldif` y reinicia con `docker compose down -v`.
 
 ## 6. Pruebas manuales de la API
 
